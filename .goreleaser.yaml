@@ -1,7 +1,8 @@
 version: 2
 project_name: taiwan-food-nutrition
 
-builds: []  # No binary builds needed
+builds:
+  - skip: true
 
 release:
   extra_files:
