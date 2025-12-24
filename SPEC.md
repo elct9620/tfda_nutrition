@@ -437,39 +437,252 @@ changelog:
 
 ### 5.4 GitHub Pages Architecture
 
+#### 5.4.1 Page Structure
+
+The GitHub Pages site is a single-page application with two main sections:
+
+| Section | Purpose |
+|---------|---------|
+| Hero | Project overview, statistics, download button |
+| Playground | Interactive SQL query interface |
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       GitHub Pages                               │
-│                  https://user.github.io/repo                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                       index.html                            │ │
-│  │  ┌──────────────────────────────────────────────────────┐  │ │
-│  │  │  Taiwan Food Nutrition Database                       │  │ │
-│  │  │  ─────────────────────────────────                    │  │ │
-│  │  │  Foods: 2,181 | Nutrients: 107                        │  │ │
-│  │  │                                                        │  │ │
-│  │  │  [Download SQLite]  [View on GitHub]                  │  │ │
-│  │  │                                                        │  │ │
-│  │  │  Remote Access (sql.js-httpvfs compatible):           │  │ │
-│  │  │  https://user.github.io/repo/nutrition.db             │  │ │
-│  │  └──────────────────────────────────────────────────────┘  │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  ┌────────────────┐                                             │
-│  │ nutrition.db   │  ← Supports HTTP Range requests             │
-│  │  (~13 MB)      │    for sql.js-httpvfs lazy loading          │
-│  └────────────────┘                                             │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+web/
+  index.html       # Single-page application
+  nutrition.db     # SQLite database (copied during build)
 ```
 
-**Key Features:**
-- Simple landing page with database statistics
-- Direct download link for SQLite database
-- HTTP Range request support for remote SQLite access via sql.js-httpvfs
-- No server required - static file hosting only
+#### 5.4.2 Design System
+
+**Design Tokens:**
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Primary | `#0f2540` | Headers, primary text, dark backgrounds |
+| Secondary | `#51a8dd` | Links, interactive elements, highlights |
+| Accent 1 | `#eb7a77` | Error states, warnings |
+| Accent 2 | `#f9bf45` | CTA buttons, success states |
+| Background | `#ffffff` | Main page background |
+| Surface | `#f5f7fa` | Code blocks, result tables |
+| Border | `#e5e7eb` | Table borders, separators |
+
+**Style Guidelines:**
+- Border radius: `0` (sharp corners throughout)
+- Typography: System fonts (no external fonts)
+- Spacing scale: 8px, 16px, 24px, 32px
+
+#### 5.4.3 CDN Dependencies
+
+| Library | Version | CDN URL | Purpose |
+|---------|---------|---------|---------|
+| TailwindCSS | 3.x | `https://cdn.tailwindcss.com` | Styling with custom config |
+| SQL.js | 1.11.0+ | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js` | SQLite in browser |
+| SQL.js WASM | 1.11.0+ | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.wasm` | WASM binary |
+
+**Notes:**
+- SQL.js supports FTS5 out of the box
+- Tailwind CDN mode allows inline configuration without build step
+- No npm/yarn installation required
+
+#### 5.4.4 HTML Structure
+
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taiwan Food Nutrition Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0f2540',
+                        secondary: '#51a8dd',
+                        accent1: '#eb7a77',
+                        accent2: '#f9bf45',
+                        surface: '#f5f7fa'
+                    },
+                    borderRadius: {
+                        DEFAULT: '0',
+                        'none': '0'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <header><!-- Project title, GitHub link --></header>
+    <section id="hero"><!-- Statistics, Download button --></section>
+    <section id="playground"><!-- Query input, Example selector, Results --></section>
+    <footer><!-- Attribution, License --></footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js"></script>
+    <script>/* Application logic */</script>
+</body>
+</html>
+```
+
+#### 5.4.5 Component Specifications
+
+| Component | Height | Background | Content |
+|-----------|--------|------------|---------|
+| Header | 64px | Primary (`#0f2540`) | Project title, GitHub link |
+| Hero | Auto | White | Statistics cards, Download button |
+| Playground | Auto | Surface (`#f5f7fa`) | Query textarea, Example dropdown, Results table |
+| Footer | Auto | Surface (`#f5f7fa`) | Data source, License, Version |
+
+**Button Styles:**
+- Download: Accent 2 (`#f9bf45`) background, Primary text
+- Run Query: Secondary (`#51a8dd`) background, White text
+
+#### 5.4.6 Example Queries for Playground
+
+| Label | Description |
+|-------|-------------|
+| High Protein Foods | Top 10 foods with highest protein |
+| Search by Name | Full-text search for foods |
+| Food Nutrients | All nutrients for a specific food |
+| High Protein + Low Fat | Filter protein >20g and fat <5g |
+| Recipe Calculation | Calculate nutrients for ingredients |
+| Vitamin Search | Search nutrients containing vitamin |
+| Category List | All categories with food counts |
+
+**Query Implementations:**
+
+```sql
+-- 1. High Protein Foods
+SELECT f.name_zh, fn.value_per_100g as protein_g
+FROM foods f
+JOIN food_nutrients fn ON f.id = fn.food_id
+JOIN nutrients n ON fn.nutrient_id = n.id
+WHERE n.name = '粗蛋白'
+ORDER BY protein_g DESC LIMIT 10;
+
+-- 2. Search by Name
+SELECT f.code, f.name_zh, f.name_en, c.name as category
+FROM foods f
+JOIN categories c ON f.category_id = c.id
+WHERE f.name_zh LIKE '%雞%' LIMIT 20;
+
+-- 3. Food Nutrients
+SELECT n.name, fn.value_per_100g, n.unit
+FROM foods f
+JOIN food_nutrients fn ON f.id = fn.food_id
+JOIN nutrients n ON fn.nutrient_id = n.id
+WHERE f.name_zh = '白飯'
+ORDER BY n.id;
+
+-- 4. High Protein + Low Fat
+SELECT f.name_zh,
+    MAX(CASE WHEN n.name = '粗蛋白' THEN fn.value_per_100g END) as protein,
+    MAX(CASE WHEN n.name = '粗脂肪' THEN fn.value_per_100g END) as fat
+FROM foods f
+JOIN food_nutrients fn ON f.id = fn.food_id
+JOIN nutrients n ON fn.nutrient_id = n.id
+WHERE n.name IN ('粗蛋白', '粗脂肪')
+GROUP BY f.id HAVING protein > 20 AND fat < 5
+ORDER BY protein DESC LIMIT 10;
+
+-- 5. Recipe Calculation
+WITH recipe AS (
+    SELECT '大番茄平均值(紅色系)' as ingredient, 200.0 as grams
+    UNION ALL SELECT '土雞蛋', 120.0
+    UNION ALL SELECT '調合植物油', 10.0
+)
+SELECT n.name, ROUND(SUM(fn.value_per_100g * r.grams / 100), 1) as value, n.unit
+FROM recipe r
+JOIN foods f ON f.name_zh = r.ingredient
+JOIN food_nutrients fn ON f.id = fn.food_id
+JOIN nutrients n ON fn.nutrient_id = n.id
+WHERE n.name IN ('熱量', '粗蛋白', '粗脂肪', '總碳水化合物')
+GROUP BY n.name, n.unit;
+
+-- 6. Vitamin Search
+SELECT n.name, n.unit FROM nutrients n
+WHERE n.name LIKE '%維生素%' ORDER BY n.name;
+
+-- 7. Category List
+SELECT c.name, COUNT(f.id) as food_count
+FROM categories c LEFT JOIN foods f ON f.category_id = c.id
+GROUP BY c.id ORDER BY food_count DESC;
+```
+
+#### 5.4.7 JavaScript Application Logic
+
+**Initialization Flow:**
+1. Load SQL.js WASM module
+2. Fetch `nutrition.db` via HTTP
+3. Initialize database in memory
+4. Extract statistics for hero section
+5. Enable playground interface
+
+**Key Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `initSqlJs()` | Load SQL.js library and WASM binary |
+| `loadDatabase()` | Fetch and load nutrition.db into memory |
+| `executeQuery(sql)` | Run SQL query and return results |
+| `displayResults(results)` | Render results as HTML table |
+| `loadExampleQuery(id)` | Populate textarea with example query |
+| `updateStatistics()` | Fetch and display counts in hero section |
+
+**Error Handling:**
+- Display user-friendly messages for SQL syntax errors
+- Show loading states during database fetch
+- Handle network failures gracefully
+
+#### 5.4.8 Architecture Diagram
+
+```
++-------------------------------------------------------------------+
+|                       GitHub Pages                                 |
+|                  https://user.github.io/repo                       |
++-------------------------------------------------------------------+
+|                                                                    |
+|  +--------------------------------------------------------------+ |
+|  |  Header (#0f2540)  Taiwan Food Nutrition DB    [GitHub Link] | |
+|  +--------------------------------------------------------------+ |
+|  |                                                                | |
+|  |  +----------------------------------------------------------+ | |
+|  |  |                   Hero Section                            | | |
+|  |  |  +------------+  +------------+  +------------+           | | |
+|  |  |  | Foods      |  | Nutrients  |  | Categories |           | | |
+|  |  |  | 2,181      |  | 107        |  | 18         |           | | |
+|  |  |  +------------+  +------------+  +------------+           | | |
+|  |  |                                                            | | |
+|  |  |  +----------------------------------------------------+   | | |
+|  |  |  |     Download SQLite Database (#f9bf45 button)      |   | | |
+|  |  |  +----------------------------------------------------+   | | |
+|  |  +----------------------------------------------------------+ | |
+|  |                                                                | |
+|  |  +----------------------------------------------------------+ | |
+|  |  |                  SQL Playground (#f5f7fa)                 | | |
+|  |  |  +----------------------+  +-------------------------+    | | |
+|  |  |  | Example Queries  [v] |  |   Run Query (#51a8dd)   |    | | |
+|  |  |  +----------------------+  +-------------------------+    | | |
+|  |  |  +----------------------------------------------------+   | | |
+|  |  |  | SELECT * FROM foods LIMIT 10;                      |   | | |
+|  |  |  +----------------------------------------------------+   | | |
+|  |  |  +----------------------------------------------------+   | | |
+|  |  |  |  Results Table                                      |   | | |
+|  |  |  |  | id | name_zh | name_en | category |              |   | | |
+|  |  |  |  | 1  | 白飯    | Rice    | 穀物類   |              |   | | |
+|  |  |  +----------------------------------------------------+   | | |
+|  |  +----------------------------------------------------------+ | |
+|  |                                                                | |
+|  |  +----------------------------------------------------------+ | |
+|  |  |  Footer - Data: Taiwan FDA | License: OGL | v2025xxxx    | | |
+|  |  +----------------------------------------------------------+ | |
+|  +--------------------------------------------------------------+ |
+|                                                                    |
+|  nutrition.db  <-- Loaded via fetch() into SQL.js (~13 MB)        |
+|                                                                    |
++-------------------------------------------------------------------+
+```
 
 ## 6. Use Cases & Decision Tables
 
@@ -683,10 +896,19 @@ EXPLAIN QUERY PLAN SELECT * FROM foods_fts WHERE name_zh LIKE '%雞%';
 
 ### 9.2 GitHub Pages Contents
 
-| File | Description |
-|------|-------------|
-| `index.html` | Landing page with stats and download link |
-| `nutrition.db` | SQLite database (HTTP Range request compatible) |
+| File | Description | Size |
+|------|-------------|------|
+| `index.html` | Single-page application with playground | ~15 KB |
+| `nutrition.db` | SQLite database with FTS5 | ~13 MB |
+
+**Features:**
+- Statistics dashboard (foods, nutrients, categories counts)
+- Download button for SQLite database
+- Interactive SQL playground with SQL.js
+- Pre-built example queries (7 common use cases)
+- Full-text search support via FTS5 tables
+- Sharp, minimal design following design tokens
+- No build step required - pure HTML/CSS/JS via CDN
 
 ### 9.3 Report Schema
 
