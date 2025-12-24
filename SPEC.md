@@ -230,7 +230,13 @@ name: Food Nutrition ETL
 on:
   schedule:
     - cron: '0 0 1 * *'  # Monthly on 1st
-  workflow_dispatch:      # Manual trigger (artifacts only, no release)
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a GitHub release'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   etl:
@@ -242,7 +248,16 @@ jobs:
 
       - name: Generate version
         id: version
-        run: echo "version=v$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+        run: |
+          git fetch --tags
+          BASE_VERSION="v$(date +%Y%m%d)"
+          SUFFIX=0
+          VERSION="$BASE_VERSION"
+          while git rev-parse "$VERSION" >/dev/null 2>&1; do
+            SUFFIX=$((SUFFIX + 1))
+            VERSION="${BASE_VERSION}.${SUFFIX}"
+          done
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -316,7 +331,7 @@ jobs:
 
   release:
     needs: etl
-    if: github.event_name == 'schedule'  # Only on scheduled runs
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.release == true)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -348,7 +363,6 @@ jobs:
 
   pages:
     needs: etl
-    if: github.event_name == 'schedule'  # Only on scheduled runs
     runs-on: ubuntu-latest
     permissions:
       pages: write
