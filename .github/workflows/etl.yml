@@ -1,0 +1,117 @@
+name: Food Nutrition ETL
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Monthly on 1st
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Generate version
+        id: version
+        run: echo "version=v$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install duckdb
+          sudo apt-get update && sudo apt-get install -y sqlite3
+
+      - name: Verify FTS5 support
+        run: |
+          echo "SQLite version: $(sqlite3 --version)"
+          sqlite3 :memory: "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');"
+          echo "FTS5 trigram tokenizer supported"
+
+      - name: Download FDA data
+        run: |
+          curl -L -o food_data.zip \
+            "https://data.fda.gov.tw/data/opendata/export/20/json"
+          unzip food_data.zip -d data/
+
+      - name: Run ETL
+        run: python build.py data/*.json nutrition.db --report report.json
+
+      - name: Verify FTS enabled
+        run: |
+          FTS_ENABLED=$(jq -r '.fts_enabled' report.json)
+          if [ "$FTS_ENABLED" != "true" ]; then
+            echo "FTS5 was not enabled in the database"
+            exit 1
+          fi
+          FTS_COUNT=$(sqlite3 nutrition.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'")
+          if [ "$FTS_COUNT" != "2" ]; then
+            echo "Expected 2 FTS tables, found $FTS_COUNT"
+            exit 1
+          fi
+          echo "FTS5 verification passed"
+
+      - name: Run validation
+        run: python validate.py nutrition.db
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: etl-output
+          path: |
+            nutrition.db
+            report.json
+            USAGE.md
+
+      - name: Write Job Summary
+        run: |
+          echo "## Food Nutrition ETL Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Records | $(jq .counts.total_records report.json) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Foods | $(jq .counts.foods report.json) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Nutrients | $(jq .counts.nutrients report.json) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Categories | $(jq .counts.categories report.json) |" >> $GITHUB_STEP_SUMMARY
+          FTS_STATUS=$(jq -r '.fts_enabled | if . then "Enabled" else "Disabled" end' report.json)
+          echo "| FTS5 Full-Text Search | $FTS_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+  release:
+    needs: etl
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Required for GoReleaser changelog
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: etl-output
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.etl.outputs.version }}
+          git push origin ${{ needs.etl.outputs.version }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

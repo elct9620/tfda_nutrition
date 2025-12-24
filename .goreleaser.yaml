@@ -1,0 +1,18 @@
+project_name: taiwan-food-nutrition
+
+builds: []  # No binary builds needed
+
+release:
+  extra_files:
+    - glob: nutrition.db
+    - glob: USAGE.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
