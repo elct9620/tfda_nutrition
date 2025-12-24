@@ -218,4 +218,5 @@ __marimo__/
 # Project specific
 data/
 nutrition.db
+web/nutrition.db
 report.json
