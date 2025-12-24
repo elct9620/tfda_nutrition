@@ -490,11 +490,11 @@ web/
 | Library | Version | CDN URL | Purpose |
 |---------|---------|---------|---------|
 | TailwindCSS | 3.x | `https://cdn.tailwindcss.com` | Styling with custom config |
-| SQL.js | 1.11.0+ | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js` | SQLite in browser |
-| SQL.js WASM | 1.11.0+ | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.wasm` | WASM binary |
+| SQL.js | 1.11.0 | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js` | SQLite in browser |
+| SQL.js WASM | 1.11.0 | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.wasm` | WASM binary |
 
 **Notes:**
-- SQL.js supports FTS5 out of the box
+- **FTS5 is not available in the web playground.** Standard sql.js does not include FTS5, and available FTS5 forks lack the trigram tokenizer required by this database. Use `LIKE` queries for text search in the browser. FTS5 works when using the downloaded database with native SQLite.
 - Tailwind CDN mode allows inline configuration without build step
 - No npm/yarn installation required
 
@@ -557,12 +557,14 @@ web/
 | Label | Description |
 |-------|-------------|
 | High Protein Foods | Top 10 foods with highest protein |
-| Search by Name | Full-text search for foods |
+| Search by Name (LIKE) | Search foods using LIKE pattern |
 | Food Nutrients | All nutrients for a specific food |
 | High Protein + Low Fat | Filter protein >20g and fat <5g |
 | Recipe Calculation | Calculate nutrients for ingredients |
 | Vitamin Search | Search nutrients containing vitamin |
 | Category List | All categories with food counts |
+
+> **Note:** FTS5 full-text search is not available in the web playground due to sql.js limitations. Use `LIKE` queries for text search. FTS5 works with the downloaded database using native SQLite.
 
 **Query Implementations:**
 

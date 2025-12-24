@@ -86,13 +86,18 @@
 
             <!-- Playground Content (hidden until loaded) -->
             <div id="playground-content" class="hidden">
+                <!-- FTS5 Notice -->
+                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                    <strong>Note:</strong> FTS5 full-text search is not available in this playground. Use <code>LIKE</code> for text search. FTS5 works with the downloaded database.
+                </div>
+
                 <!-- Example Queries -->
                 <div class="mb-4">
                     <label for="examples" class="block text-sm font-medium mb-2">Example Queries</label>
                     <select id="examples" class="w-full md:w-auto border border-gray-300 bg-white px-4 py-2">
                         <option value="">-- Select an example --</option>
                         <option value="high-protein">High Protein Foods</option>
-                        <option value="search-name">Search by Name</option>
+                        <option value="search-name">Search by Name (LIKE)</option>
                         <option value="food-nutrients">Food Nutrients</option>
                         <option value="high-protein-low-fat">High Protein + Low Fat</option>
                         <option value="recipe">Recipe Calculation</option>
@@ -141,7 +146,7 @@
         </div>
     </footer>
 
-    <!-- SQL.js -->
+    <!-- SQL.js (FTS5 not supported in browser, use LIKE for search) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js"></script>
     <script>
         let db = null;
