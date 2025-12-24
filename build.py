@@ -8,9 +8,7 @@ with FTS5 full-text search support.
 
 import argparse
 import json
-import os
 import subprocess
-import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -52,10 +50,13 @@ def load_json(conn: duckdb.DuckDBPyConnection, json_path: Path) -> int:
     """Load JSON data into DuckDB raw_data table."""
     print(f"Loading JSON from {json_path}...")
 
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE raw_data AS
         SELECT * FROM read_json_auto(?)
-    """, [str(json_path)])
+    """,
+        [str(json_path)],
+    )
 
     count = conn.execute("SELECT COUNT(*) FROM raw_data").fetchone()[0]
     print(f"Loaded {count} records into raw_data")
@@ -238,10 +239,14 @@ def create_normalized_tables(conn: duckdb.DuckDBPyConnection) -> dict:
     # Get counts
     counts = {
         "categories": conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0],
-        "nutrient_categories": conn.execute("SELECT COUNT(*) FROM nutrient_categories").fetchone()[0],
+        "nutrient_categories": conn.execute(
+            "SELECT COUNT(*) FROM nutrient_categories"
+        ).fetchone()[0],
         "foods": conn.execute("SELECT COUNT(*) FROM foods").fetchone()[0],
         "nutrients": conn.execute("SELECT COUNT(*) FROM nutrients").fetchone()[0],
-        "food_nutrients": conn.execute("SELECT COUNT(*) FROM food_nutrients").fetchone()[0],
+        "food_nutrients": conn.execute(
+            "SELECT COUNT(*) FROM food_nutrients"
+        ).fetchone()[0],
     }
 
     print(f"Created tables: {counts}")
@@ -263,7 +268,13 @@ def export_sqlite(conn: duckdb.DuckDBPyConnection, output_path: Path) -> None:
     conn.execute(f"ATTACH '{output_path}' AS sqlite_db (TYPE sqlite)")
 
     # Export tables
-    tables = ["categories", "nutrient_categories", "foods", "nutrients", "food_nutrients"]
+    tables = [
+        "categories",
+        "nutrient_categories",
+        "foods",
+        "nutrients",
+        "food_nutrients",
+    ]
     for table in tables:
         conn.execute(f"CREATE TABLE sqlite_db.{table} AS SELECT * FROM {table}")
         print(f"  Exported {table}")
@@ -300,7 +311,11 @@ def check_fts5_support() -> bool:
     """Check if system sqlite3 supports FTS5 with trigram tokenizer."""
     try:
         result = subprocess.run(
-            ["sqlite3", ":memory:", "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');"],
+            [
+                "sqlite3",
+                ":memory:",
+                "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');",
+            ],
             capture_output=True,
             text=True,
         )
@@ -312,7 +327,9 @@ def check_fts5_support() -> bool:
 def create_fts_indexes(db_path: Path) -> bool:
     """Create FTS5 virtual tables using system sqlite3."""
     if not check_fts5_support():
-        print("Warning: FTS5 with trigram tokenizer not supported, skipping FTS creation")
+        print(
+            "Warning: FTS5 with trigram tokenizer not supported, skipping FTS creation"
+        )
         return False
 
     print("Creating FTS5 indexes...")
@@ -371,7 +388,11 @@ def generate_report(
 
     # Count P/M/S records
     result = subprocess.run(
-        ["sqlite3", str(db_path), "SELECT COUNT(*) FROM nutrients WHERE name LIKE '脂肪酸比例%'"],
+        [
+            "sqlite3",
+            str(db_path),
+            "SELECT COUNT(*) FROM nutrients WHERE name LIKE '脂肪酸比例%'",
+        ],
         capture_output=True,
         text=True,
     )

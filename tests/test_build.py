@@ -1,9 +1,7 @@
 """Unit tests for build.py ETL functions."""
 
-import subprocess
 from unittest.mock import patch
 
-import pytest
 
 from build import (
     check_fts5_support,
@@ -95,7 +93,13 @@ class TestCreateNormalizedTables:
         """).fetchall()
 
         table_names = {t[0] for t in tables}
-        assert table_names == {"categories", "nutrient_categories", "foods", "nutrients", "food_nutrients"}
+        assert table_names == {
+            "categories",
+            "nutrient_categories",
+            "foods",
+            "nutrients",
+            "food_nutrients",
+        }
 
     def test_categories_are_unique(self, raw_data_table):
         """Verify categories table has unique entries."""

@@ -40,9 +40,7 @@ def validate_counts(conn: sqlite3.Connection) -> list[str]:
         "SELECT COUNT(*) FROM nutrient_categories"
     ).fetchone()[0]
     if nutrient_category_count != 11:
-        errors.append(
-            f"Nutrient category count {nutrient_category_count} should be 11"
-        )
+        errors.append(f"Nutrient category count {nutrient_category_count} should be 11")
     else:
         print(f"  Nutrient categories: {nutrient_category_count} (= 11)")
 
