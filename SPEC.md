@@ -489,12 +489,14 @@ web/
 
 | Library | Version | CDN URL | Purpose |
 |---------|---------|---------|---------|
+| Vue.js | 3.x | `https://unpkg.com/vue@3/dist/vue.global.js` | Reactive UI framework |
 | TailwindCSS | 3.x | `https://cdn.tailwindcss.com` | Styling with custom config |
 | SQL.js | 1.11.0 | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js` | SQLite in browser |
 | SQL.js WASM | 1.11.0 | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.wasm` | WASM binary |
 
 **Notes:**
 - **FTS5 is not available in the web playground.** Standard sql.js does not include FTS5, and available FTS5 forks lack the trigram tokenizer required by this database. Use `LIKE` queries for text search in the browser. FTS5 works when using the downloaded database with native SQLite.
+- Vue.js 3 Composition API provides reactive state management without build step
 - Tailwind CDN mode allows inline configuration without build step
 - No npm/yarn installation required
 
@@ -508,6 +510,7 @@ web/
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taiwan Food Nutrition Database</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -529,12 +532,14 @@ web/
     </script>
 </head>
 <body>
-    <header><!-- Project title, GitHub link --></header>
-    <section id="hero"><!-- Statistics, Download button --></section>
-    <section id="playground"><!-- Query input, Example selector, Results --></section>
-    <footer><!-- Attribution, License --></footer>
+    <div id="app">
+        <header><!-- Project title, GitHub link --></header>
+        <section id="hero"><!-- Statistics, Download button --></section>
+        <section id="playground"><!-- Query input, Example selector, Results --></section>
+        <footer><!-- Attribution, License --></footer>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js"></script>
-    <script>/* Application logic */</script>
+    <script>/* Vue 3 Composition API application */</script>
 </body>
 </html>
 ```
@@ -637,23 +642,40 @@ The panel is sticky, allowing users to reference the database structure while wr
 
 #### 5.4.8 JavaScript Application Logic
 
+The application uses Vue 3 Composition API for reactive state management.
+
+**Reactive State:**
+
+| State | Type | Description |
+|-------|------|-------------|
+| `loading` | `ref(boolean)` | Database loading state |
+| `loadError` | `ref(string)` | Database load error message |
+| `query` | `ref(string)` | Current SQL query text |
+| `queryError` | `ref(string)` | Query execution error message |
+| `results` | `ref(object)` | Query results (columns, values) |
+| `querySuccess` | `ref(boolean)` | Query executed with no results |
+| `activeTab` | `ref(string)` | Active schema tab |
+| `selectedExample` | `ref(string)` | Selected example query key |
+| `stats` | `ref(object)` | Statistics (foods, nutrients, categories) |
+
 **Initialization Flow:**
-1. Load SQL.js WASM module
-2. Fetch `nutrition.db` via HTTP
-3. Initialize database in memory
-4. Extract statistics for hero section
-5. Enable playground interface
+1. Vue app mounts to `#app` element
+2. `onMounted` triggers `initDatabase()`
+3. Load SQL.js WASM module
+4. Fetch `nutrition.db` via HTTP
+5. Initialize database in memory
+6. Extract statistics for hero section
+7. Set `loading` to `false` to reveal playground
 
 **Key Functions:**
 
 | Function | Description |
 |----------|-------------|
-| `initSqlJs()` | Load SQL.js library and WASM binary |
-| `loadDatabase()` | Fetch and load nutrition.db into memory |
-| `executeQuery(sql)` | Run SQL query and return results |
-| `displayResults(results)` | Render results as HTML table |
-| `loadExampleQuery(id)` | Populate textarea with example query |
-| `updateStatistics()` | Fetch and display counts in hero section |
+| `initDatabase()` | Load SQL.js and fetch nutrition.db |
+| `updateStatistics()` | Query counts and update stats ref |
+| `runQuery()` | Execute SQL and update results/error refs |
+| `loadExampleQuery()` | Set query ref from selected example |
+| `handleKeydown(e)` | Ctrl+Enter to run query |
 
 **Error Handling:**
 - Display user-friendly messages for SQL syntax errors

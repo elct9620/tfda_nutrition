@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taiwan Food Nutrition Database</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -30,257 +31,307 @@
     </style>
 </head>
 <body class="bg-white text-primary min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="bg-primary text-white h-16 flex items-center justify-between px-4 md:px-8">
-        <h1 class="text-lg md:text-xl font-bold">Taiwan Food Nutrition Database</h1>
-        <a href="https://github.com/elct9620/tfda_nutrition" target="_blank" rel="noopener noreferrer"
-           class="text-white hover:text-secondary transition-colors flex items-center gap-2">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
-            </svg>
-            <span class="hidden md:inline">GitHub</span>
-        </a>
-    </header>
-
-    <!-- Hero Section -->
-    <section id="hero" class="bg-white py-8 md:py-12 px-4 md:px-8">
-        <div class="max-w-4xl mx-auto text-center">
-            <p class="text-gray-600 mb-8">
-                Nutritional information for Taiwanese foods, powered by Taiwan FDA open data.
-            </p>
-
-            <!-- Statistics Cards -->
-            <div class="grid grid-cols-3 gap-4 md:gap-8 mb-8">
-                <div class="bg-surface p-4 md:p-6 border border-gray-200">
-                    <div id="stat-foods" class="text-2xl md:text-4xl font-bold text-secondary">--</div>
-                    <div class="text-sm md:text-base text-gray-600">Foods</div>
-                </div>
-                <div class="bg-surface p-4 md:p-6 border border-gray-200">
-                    <div id="stat-nutrients" class="text-2xl md:text-4xl font-bold text-secondary">--</div>
-                    <div class="text-sm md:text-base text-gray-600">Nutrients</div>
-                </div>
-                <div class="bg-surface p-4 md:p-6 border border-gray-200">
-                    <div id="stat-categories" class="text-2xl md:text-4xl font-bold text-secondary">--</div>
-                    <div class="text-sm md:text-base text-gray-600">Categories</div>
-                </div>
-            </div>
-
-            <!-- Download Button -->
-            <a id="download-btn" href="nutrition.db" download
-               class="inline-block bg-accent2 text-primary font-bold py-3 px-8 hover:opacity-90 transition-opacity">
-                Download SQLite Database
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-primary text-white h-16 flex items-center justify-between px-4 md:px-8">
+            <h1 class="text-lg md:text-xl font-bold">Taiwan Food Nutrition Database</h1>
+            <a href="https://github.com/elct9620/tfda_nutrition" target="_blank" rel="noopener noreferrer"
+               class="text-white hover:text-secondary transition-colors flex items-center gap-2">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+                </svg>
+                <span class="hidden md:inline">GitHub</span>
             </a>
-        </div>
-    </section>
+        </header>
 
-    <!-- Playground Section -->
-    <section id="playground" class="bg-surface flex-1 py-8 md:py-12 px-4 md:px-8">
-        <div class="max-w-7xl mx-auto">
-            <h2 class="text-xl md:text-2xl font-bold mb-6">SQL Playground</h2>
+        <!-- Hero Section -->
+        <section id="hero" class="bg-white py-8 md:py-12 px-4 md:px-8">
+            <div class="max-w-4xl mx-auto text-center">
+                <p class="text-gray-600 mb-8">
+                    Nutritional information for Taiwanese foods, powered by Taiwan FDA open data.
+                </p>
 
-            <!-- Loading State -->
-            <div id="loading" class="text-center py-8">
-                <div class="inline-block animate-spin w-8 h-8 border-4 border-secondary border-t-transparent"></div>
-                <p class="mt-4 text-gray-600">Loading database...</p>
-            </div>
-
-            <!-- Playground Content (hidden until loaded) -->
-            <div id="playground-content" class="hidden">
-                <div class="flex flex-col lg:flex-row gap-6">
-                    <!-- Left Column: Query Area -->
-                    <div class="flex-1 min-w-0">
-                        <!-- FTS5 Notice -->
-                        <div class="mb-4 p-3 bg-amber-50 border border-amber-200 text-sm text-amber-800">
-                            <strong>Note:</strong> FTS5 full-text search is not available in this playground. Use <code>LIKE</code> for text search. FTS5 works with the downloaded database.
-                        </div>
-
-                        <!-- Example Queries -->
-                        <div class="mb-4">
-                            <label for="examples" class="block text-sm font-medium mb-2">Example Queries</label>
-                            <select id="examples" class="w-full md:w-auto border border-gray-300 bg-white px-4 py-2">
-                                <option value="">-- Select an example --</option>
-                                <option value="high-protein">High Protein Foods</option>
-                                <option value="search-name">Search by Name (LIKE)</option>
-                                <option value="food-nutrients">Food Nutrients</option>
-                                <option value="high-protein-low-fat">High Protein + Low Fat</option>
-                                <option value="recipe">Recipe Calculation</option>
-                                <option value="vitamins">Vitamin Search</option>
-                                <option value="categories">Category List</option>
-                            </select>
-                        </div>
-
-                        <!-- Query Input -->
-                        <div class="mb-4">
-                            <label for="query" class="block text-sm font-medium mb-2">SQL Query</label>
-                            <textarea id="query" rows="6"
-                                class="w-full border border-gray-300 bg-white px-4 py-3 font-mono text-sm"
-                                placeholder="SELECT * FROM foods LIMIT 10;">SELECT * FROM foods LIMIT 10;</textarea>
-                        </div>
-
-                        <!-- Run Button -->
-                        <div class="mb-6">
-                            <button id="run-btn" onclick="runQuery()"
-                                class="bg-secondary text-white font-bold py-2 px-6 hover:opacity-90 transition-opacity">
-                                Run Query
-                            </button>
-                        </div>
-
-                        <!-- Error Display -->
-                        <div id="error" class="hidden bg-accent1 bg-opacity-10 border border-accent1 text-accent1 p-4 mb-4">
-                        </div>
-
-                        <!-- Results -->
-                        <div id="results" class="overflow-x-auto">
-                            <p class="text-gray-500">Run a query to see results</p>
-                        </div>
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-3 gap-4 md:gap-8 mb-8">
+                    <div class="bg-surface p-4 md:p-6 border border-gray-200">
+                        <div class="text-2xl md:text-4xl font-bold text-secondary">{{ stats.foods }}</div>
+                        <div class="text-sm md:text-base text-gray-600">Foods</div>
                     </div>
+                    <div class="bg-surface p-4 md:p-6 border border-gray-200">
+                        <div class="text-2xl md:text-4xl font-bold text-secondary">{{ stats.nutrients }}</div>
+                        <div class="text-sm md:text-base text-gray-600">Nutrients</div>
+                    </div>
+                    <div class="bg-surface p-4 md:p-6 border border-gray-200">
+                        <div class="text-2xl md:text-4xl font-bold text-secondary">{{ stats.categories }}</div>
+                        <div class="text-sm md:text-base text-gray-600">Categories</div>
+                    </div>
+                </div>
 
-                    <!-- Right Column: Schema Reference -->
-                    <div class="lg:w-96 lg:flex-shrink-0">
-                        <div class="lg:sticky lg:top-4">
-                            <h3 class="text-lg font-bold mb-4">Schema Reference</h3>
-                            <!-- Schema Tabs -->
-                            <div class="flex flex-wrap gap-1 mb-4">
-                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-secondary text-white" data-table="categories">categories</button>
-                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="nutrient_categories">nutrient_categories</button>
-                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="foods">foods</button>
-                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="nutrients">nutrients</button>
-                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="food_nutrients">food_nutrients</button>
+                <!-- Download Button -->
+                <a href="nutrition.db" download
+                   class="inline-block bg-accent2 text-primary font-bold py-3 px-8 hover:opacity-90 transition-opacity">
+                    Download SQLite Database
+                </a>
+            </div>
+        </section>
+
+        <!-- Playground Section -->
+        <section id="playground" class="bg-surface flex-1 py-8 md:py-12 px-4 md:px-8">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-xl md:text-2xl font-bold mb-6">SQL Playground</h2>
+
+                <!-- Loading State -->
+                <div v-if="loading" class="text-center py-8">
+                    <div class="inline-block animate-spin w-8 h-8 border-4 border-secondary border-t-transparent"></div>
+                    <p class="mt-4 text-gray-600">Loading database...</p>
+                </div>
+
+                <!-- Load Error -->
+                <div v-else-if="loadError" class="text-center py-8">
+                    <p class="text-accent1">Failed to load database: {{ loadError }}</p>
+                    <p class="mt-2 text-gray-600">Please try refreshing the page.</p>
+                </div>
+
+                <!-- Playground Content -->
+                <div v-else>
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <!-- Left Column: Query Area -->
+                        <div class="flex-1 min-w-0">
+                            <!-- FTS5 Notice -->
+                            <div class="mb-4 p-3 bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                                <strong>Note:</strong> FTS5 full-text search is not available in this playground. Use <code>LIKE</code> for text search. FTS5 works with the downloaded database.
                             </div>
-                            <!-- Schema Content -->
-                            <div id="schema-categories" class="schema-panel">
-                                <table class="w-full border-collapse bg-white text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
-                                    </tbody>
-                                </table>
-                                <p class="mt-2 text-xs text-gray-600">Food categories (e.g., 穀物類, 肉類)</p>
+
+                            <!-- Example Queries -->
+                            <div class="mb-4">
+                                <label for="examples" class="block text-sm font-medium mb-2">Example Queries</label>
+                                <select v-model="selectedExample" @change="loadExampleQuery" class="w-full md:w-auto border border-gray-300 bg-white px-4 py-2">
+                                    <option value="">-- Select an example --</option>
+                                    <option value="high-protein">High Protein Foods</option>
+                                    <option value="search-name">Search by Name (LIKE)</option>
+                                    <option value="food-nutrients">Food Nutrients</option>
+                                    <option value="high-protein-low-fat">High Protein + Low Fat</option>
+                                    <option value="recipe">Recipe Calculation</option>
+                                    <option value="vitamins">Vitamin Search</option>
+                                    <option value="categories">Category List</option>
+                                </select>
                             </div>
-                            <div id="schema-nutrient_categories" class="schema-panel hidden">
-                                <table class="w-full border-collapse bg-white text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
-                                    </tbody>
-                                </table>
-                                <p class="mt-2 text-xs text-gray-600">Nutrient groups (e.g., 維生素, 礦物質)</p>
+
+                            <!-- Query Input -->
+                            <div class="mb-4">
+                                <label for="query" class="block text-sm font-medium mb-2">SQL Query</label>
+                                <textarea v-model="query" @keydown="handleKeydown" rows="6"
+                                    class="w-full border border-gray-300 bg-white px-4 py-3 font-mono text-sm"
+                                    placeholder="SELECT * FROM foods LIMIT 10;"></textarea>
                             </div>
-                            <div id="schema-foods" class="schema-panel hidden">
-                                <table class="w-full border-collapse bg-white text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">code</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT UNIQUE</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name_zh</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name_en</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">category_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER FK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">alias</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">description</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">waste_rate</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">serving_size</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
-                                    </tbody>
-                                </table>
-                                <p class="mt-2 text-xs text-gray-600">category_id → categories.id</p>
+
+                            <!-- Run Button -->
+                            <div class="mb-6">
+                                <button @click="runQuery"
+                                    class="bg-secondary text-white font-bold py-2 px-6 hover:opacity-90 transition-opacity">
+                                    Run Query
+                                </button>
                             </div>
-                            <div id="schema-nutrients" class="schema-panel hidden">
-                                <table class="w-full border-collapse bg-white text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">category_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER FK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">unit</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
-                                    </tbody>
-                                </table>
-                                <p class="mt-2 text-xs text-gray-600">category_id → nutrient_categories.id<br>Units: mg, g, ug, kcal, I.U.</p>
+
+                            <!-- Error Display -->
+                            <div v-if="queryError" class="bg-accent1 bg-opacity-10 border border-accent1 text-accent1 p-4 mb-4">
+                                {{ queryError }}
                             </div>
-                            <div id="schema-food_nutrients" class="schema-panel hidden">
-                                <table class="w-full border-collapse bg-white text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
-                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">food_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK,FK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">nutrient_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK,FK</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">value_per_100g</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">sample_count</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER NULL</td></tr>
-                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">std_deviation</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
-                                    </tbody>
-                                </table>
-                                <p class="mt-2 text-xs text-gray-600">food_id → foods.id<br>nutrient_id → nutrients.id</p>
+
+                            <!-- Results -->
+                            <div class="overflow-x-auto">
+                                <div v-if="results">
+                                    <table class="w-full border-collapse bg-white">
+                                        <thead>
+                                            <tr>
+                                                <th v-for="col in results.columns" :key="col" class="border border-gray-300 px-4 py-2 bg-primary text-white text-left">{{ col }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(row, i) in results.values" :key="i">
+                                                <td v-for="(cell, j) in row" :key="j" class="border border-gray-300 px-4 py-2">
+                                                    <span v-if="cell === null" class="text-gray-400">NULL</span>
+                                                    <template v-else>{{ cell }}</template>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="mt-2 text-sm text-gray-500">{{ results.values.length }} row(s) returned</p>
+                                </div>
+                                <div v-else-if="querySuccess">
+                                    <p class="text-gray-500">Query executed successfully. No results returned.</p>
+                                </div>
+                                <p v-else class="text-gray-500">Run a query to see results</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Schema Reference -->
+                        <div class="lg:w-96 lg:flex-shrink-0">
+                            <div class="lg:sticky lg:top-4">
+                                <h3 class="text-lg font-bold mb-4">Schema Reference</h3>
+                                <!-- Schema Tabs -->
+                                <div class="flex flex-wrap gap-1 mb-4">
+                                    <button v-for="table in schemaTables" :key="table"
+                                        @click="activeTab = table"
+                                        :class="activeTab === table ? 'bg-secondary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                                        class="schema-tab px-3 py-1 text-sm font-medium">
+                                        {{ table }}
+                                    </button>
+                                </div>
+                                <!-- Schema Content -->
+                                <div v-show="activeTab === 'categories'">
+                                    <table class="w-full border-collapse bg-white text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="mt-2 text-xs text-gray-600">Food categories (e.g., 穀物類, 肉類)</p>
+                                </div>
+                                <div v-show="activeTab === 'nutrient_categories'">
+                                    <table class="w-full border-collapse bg-white text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="mt-2 text-xs text-gray-600">Nutrient groups (e.g., 維生素, 礦物質)</p>
+                                </div>
+                                <div v-show="activeTab === 'foods'">
+                                    <table class="w-full border-collapse bg-white text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">code</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT UNIQUE</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name_zh</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name_en</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">category_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER FK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">alias</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">description</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">waste_rate</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">serving_size</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="mt-2 text-xs text-gray-600">category_id → categories.id</p>
+                                </div>
+                                <div v-show="activeTab === 'nutrients'">
+                                    <table class="w-full border-collapse bg-white text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">category_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER FK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">unit</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="mt-2 text-xs text-gray-600">category_id → nutrient_categories.id<br>Units: mg, g, ug, kcal, I.U.</p>
+                                </div>
+                                <div v-show="activeTab === 'food_nutrients'">
+                                    <table class="w-full border-collapse bg-white text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                                <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">food_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK,FK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">nutrient_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK,FK</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">value_per_100g</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">sample_count</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER NULL</td></tr>
+                                            <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">std_deviation</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="mt-2 text-xs text-gray-600">food_id → foods.id<br>nutrient_id → nutrients.id</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Footer -->
-    <footer class="bg-surface border-t border-gray-200 py-6 px-4 md:px-8">
-        <div class="max-w-4xl mx-auto text-center text-sm text-gray-600">
-            <p>
-                Data Source: <a href="https://data.fda.gov.tw/" target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">Taiwan Food and Drug Administration</a>
-            </p>
-            <p class="mt-1">
-                License: <a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">Taiwan Open Government Data License</a>
-            </p>
-        </div>
-    </footer>
+        <!-- Footer -->
+        <footer class="bg-surface border-t border-gray-200 py-6 px-4 md:px-8">
+            <div class="max-w-4xl mx-auto text-center text-sm text-gray-600">
+                <p>
+                    Data Source: <a href="https://data.fda.gov.tw/" target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">Taiwan Food and Drug Administration</a>
+                </p>
+                <p class="mt-1">
+                    License: <a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">Taiwan Open Government Data License</a>
+                </p>
+            </div>
+        </footer>
+    </div>
 
     <!-- SQL.js (FTS5 not supported in browser, use LIKE for search) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js"></script>
     <script>
-        let db = null;
+        const { createApp, ref, onMounted } = Vue;
 
-        // Example queries from SPEC.md
-        const exampleQueries = {
-            'high-protein': `SELECT f.name_zh, fn.value_per_100g as protein_g
+        createApp({
+            setup() {
+                // Database instance (not reactive, just a reference)
+                let db = null;
+
+                // Reactive state
+                const loading = ref(true);
+                const loadError = ref(null);
+                const query = ref('SELECT * FROM foods LIMIT 10;');
+                const queryError = ref(null);
+                const results = ref(null);
+                const querySuccess = ref(false);
+                const activeTab = ref('categories');
+                const selectedExample = ref('');
+                const stats = ref({ foods: '--', nutrients: '--', categories: '--' });
+
+                // Schema tables
+                const schemaTables = ['categories', 'nutrient_categories', 'foods', 'nutrients', 'food_nutrients'];
+
+                // Example queries
+                const exampleQueries = {
+                    'high-protein': `SELECT f.name_zh, fn.value_per_100g as protein_g
 FROM foods f
 JOIN food_nutrients fn ON f.id = fn.food_id
 JOIN nutrients n ON fn.nutrient_id = n.id
 WHERE n.name = '粗蛋白'
 ORDER BY protein_g DESC LIMIT 10;`,
 
-            'search-name': `SELECT f.code, f.name_zh, f.name_en, c.name as category
+                    'search-name': `SELECT f.code, f.name_zh, f.name_en, c.name as category
 FROM foods f
 JOIN categories c ON f.category_id = c.id
 WHERE f.name_zh LIKE '%雞%' LIMIT 20;`,
 
-            'food-nutrients': `SELECT n.name, fn.value_per_100g, n.unit
+                    'food-nutrients': `SELECT n.name, fn.value_per_100g, n.unit
 FROM foods f
 JOIN food_nutrients fn ON f.id = fn.food_id
 JOIN nutrients n ON fn.nutrient_id = n.id
 WHERE f.name_zh = '白飯'
 ORDER BY n.id;`,
 
-            'high-protein-low-fat': `SELECT f.name_zh,
+                    'high-protein-low-fat': `SELECT f.name_zh,
     MAX(CASE WHEN n.name = '粗蛋白' THEN fn.value_per_100g END) as protein,
     MAX(CASE WHEN n.name = '粗脂肪' THEN fn.value_per_100g END) as fat
 FROM foods f
@@ -290,7 +341,7 @@ WHERE n.name IN ('粗蛋白', '粗脂肪')
 GROUP BY f.id HAVING protein > 20 AND fat < 5
 ORDER BY protein DESC LIMIT 10;`,
 
-            'recipe': `WITH recipe AS (
+                    'recipe': `WITH recipe AS (
     SELECT '大番茄平均值(紅色系)' as ingredient, 200.0 as grams
     UNION ALL SELECT '土雞蛋', 120.0
     UNION ALL SELECT '調合植物油', 10.0
@@ -303,148 +354,116 @@ JOIN nutrients n ON fn.nutrient_id = n.id
 WHERE n.name IN ('熱量', '粗蛋白', '粗脂肪', '總碳水化合物')
 GROUP BY n.name, n.unit;`,
 
-            'vitamins': `SELECT n.name, n.unit FROM nutrients n
+                    'vitamins': `SELECT n.name, n.unit FROM nutrients n
 WHERE n.name LIKE '%維生素%' ORDER BY n.name;`,
 
-            'categories': `SELECT c.name, COUNT(f.id) as food_count
+                    'categories': `SELECT c.name, COUNT(f.id) as food_count
 FROM categories c LEFT JOIN foods f ON f.category_id = c.id
 GROUP BY c.id ORDER BY food_count DESC;`
-        };
+                };
 
-        // Initialize SQL.js and load database
-        async function initDatabase() {
-            try {
-                const SQL = await initSqlJs({
-                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/${file}`
-                });
+                // Initialize database
+                async function initDatabase() {
+                    try {
+                        const SQL = await initSqlJs({
+                            locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/${file}`
+                        });
 
-                const response = await fetch('nutrition.db');
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch database: ${response.status}`);
-                }
+                        const response = await fetch('nutrition.db');
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch database: ${response.status}`);
+                        }
 
-                const buffer = await response.arrayBuffer();
-                db = new SQL.Database(new Uint8Array(buffer));
+                        const buffer = await response.arrayBuffer();
+                        db = new SQL.Database(new Uint8Array(buffer));
 
-                updateStatistics();
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('playground-content').classList.remove('hidden');
-            } catch (error) {
-                document.getElementById('loading').innerHTML = `
-                    <p class="text-accent1">Failed to load database: ${error.message}</p>
-                    <p class="mt-2 text-gray-600">Please try refreshing the page.</p>
-                `;
-            }
-        }
-
-        // Update statistics in hero section
-        function updateStatistics() {
-            try {
-                const foodsCount = db.exec("SELECT COUNT(*) FROM foods")[0].values[0][0];
-                const nutrientsCount = db.exec("SELECT COUNT(*) FROM nutrients")[0].values[0][0];
-                const categoriesCount = db.exec("SELECT COUNT(*) FROM categories")[0].values[0][0];
-
-                document.getElementById('stat-foods').textContent = foodsCount.toLocaleString();
-                document.getElementById('stat-nutrients').textContent = nutrientsCount.toLocaleString();
-                document.getElementById('stat-categories').textContent = categoriesCount.toLocaleString();
-            } catch (error) {
-                console.error('Failed to update statistics:', error);
-            }
-        }
-
-        // Run SQL query
-        function runQuery() {
-            const query = document.getElementById('query').value.trim();
-            const errorDiv = document.getElementById('error');
-            const resultsDiv = document.getElementById('results');
-
-            errorDiv.classList.add('hidden');
-
-            if (!query) {
-                errorDiv.textContent = 'Please enter a SQL query';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                const results = db.exec(query);
-
-                if (results.length === 0) {
-                    resultsDiv.innerHTML = '<p class="text-gray-500">Query executed successfully. No results returned.</p>';
-                    return;
-                }
-
-                const result = results[0];
-                let html = '<table class="w-full border-collapse bg-white">';
-                html += '<thead><tr>';
-                for (const col of result.columns) {
-                    html += `<th class="border border-gray-300 px-4 py-2 bg-primary text-white text-left">${escapeHtml(col)}</th>`;
-                }
-                html += '</tr></thead><tbody>';
-
-                for (const row of result.values) {
-                    html += '<tr>';
-                    for (const cell of row) {
-                        const value = cell === null ? '<span class="text-gray-400">NULL</span>' : escapeHtml(String(cell));
-                        html += `<td class="border border-gray-300 px-4 py-2">${value}</td>`;
+                        updateStatistics();
+                        loading.value = false;
+                    } catch (error) {
+                        loadError.value = error.message;
+                        loading.value = false;
                     }
-                    html += '</tr>';
                 }
 
-                html += '</tbody></table>';
-                html += `<p class="mt-2 text-sm text-gray-500">${result.values.length} row(s) returned</p>`;
-                resultsDiv.innerHTML = html;
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.classList.remove('hidden');
-            }
-        }
+                // Update statistics
+                function updateStatistics() {
+                    try {
+                        const foodsCount = db.exec("SELECT COUNT(*) FROM foods")[0].values[0][0];
+                        const nutrientsCount = db.exec("SELECT COUNT(*) FROM nutrients")[0].values[0][0];
+                        const categoriesCount = db.exec("SELECT COUNT(*) FROM categories")[0].values[0][0];
 
-        // Load example query
-        function loadExampleQuery(key) {
-            if (key && exampleQueries[key]) {
-                document.getElementById('query').value = exampleQueries[key];
-            }
-        }
+                        stats.value = {
+                            foods: foodsCount.toLocaleString(),
+                            nutrients: nutrientsCount.toLocaleString(),
+                            categories: categoriesCount.toLocaleString()
+                        };
+                    } catch (error) {
+                        console.error('Failed to update statistics:', error);
+                    }
+                }
 
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+                // Run query
+                function runQuery() {
+                    const sql = query.value.trim();
+                    queryError.value = null;
+                    results.value = null;
+                    querySuccess.value = false;
 
-        // Event listeners
-        document.getElementById('examples').addEventListener('change', function() {
-            loadExampleQuery(this.value);
-        });
+                    if (!sql) {
+                        queryError.value = 'Please enter a SQL query';
+                        return;
+                    }
 
-        // Allow Ctrl+Enter to run query
-        document.getElementById('query').addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'Enter') {
-                runQuery();
-            }
-        });
+                    try {
+                        const queryResults = db.exec(sql);
 
-        // Schema tab switching
-        document.querySelectorAll('.schema-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const table = this.dataset.table;
-                // Update tab styles
-                document.querySelectorAll('.schema-tab').forEach(t => {
-                    t.classList.remove('bg-secondary', 'text-white');
-                    t.classList.add('bg-gray-200', 'text-gray-700');
+                        if (queryResults.length === 0) {
+                            querySuccess.value = true;
+                            return;
+                        }
+
+                        results.value = queryResults[0];
+                    } catch (error) {
+                        queryError.value = error.message;
+                    }
+                }
+
+                // Load example query
+                function loadExampleQuery() {
+                    if (selectedExample.value && exampleQueries[selectedExample.value]) {
+                        query.value = exampleQueries[selectedExample.value];
+                    }
+                }
+
+                // Handle keyboard shortcuts
+                function handleKeydown(e) {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        runQuery();
+                    }
+                }
+
+                // Initialize on mount
+                onMounted(() => {
+                    initDatabase();
                 });
-                this.classList.remove('bg-gray-200', 'text-gray-700');
-                this.classList.add('bg-secondary', 'text-white');
-                // Show selected panel
-                document.querySelectorAll('.schema-panel').forEach(p => p.classList.add('hidden'));
-                document.getElementById('schema-' + table).classList.remove('hidden');
-            });
-        });
 
-        // Initialize on page load
-        initDatabase();
+                return {
+                    loading,
+                    loadError,
+                    query,
+                    queryError,
+                    results,
+                    querySuccess,
+                    activeTab,
+                    selectedExample,
+                    stats,
+                    schemaTables,
+                    runQuery,
+                    loadExampleQuery,
+                    handleKeydown
+                };
+            }
+        }).mount('#app');
     </script>
 </body>
 </html>
