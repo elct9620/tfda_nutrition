@@ -21,6 +21,25 @@ easily accessible for developers, researchers, and health applications.
 | Update Frequency | Periodic (check source for schedule) |
 | License | Taiwan Open Government Data License |
 
+#### Source JSON Fields
+
+| JSON Field | Description | Maps To |
+|------------|-------------|---------|
+| 食品分類 | Food category | categories.name |
+| 整合編號 | Integration code | foods.code |
+| 樣品名稱 | Chinese food name | foods.name_zh |
+| 樣品英文名稱 | English food name | foods.name_en |
+| 俗名 | Common/alias name | foods.alias |
+| 內容物描述 | Content description | foods.description |
+| 廢棄率 | Waste percentage | foods.waste_rate |
+| 每單位重 | Per-unit weight | foods.serving_size |
+| 分析項分類 | Nutrient category | nutrient_categories.name |
+| 分析項 | Nutrient name | nutrients.name |
+| 含量單位 | Unit of measure | nutrients.unit |
+| 每100克含量 | Value per 100g | food_nutrients.value_per_100g |
+| 樣本數 | Sample count | food_nutrients.sample_count |
+| 標準差 | Standard deviation | food_nutrients.std_deviation |
+
 ### 1.3 System Architecture
 
 ```
