@@ -751,7 +751,44 @@ GROUP BY c.id ORDER BY food_count DESC;
 
 ## 7. Test Cases
 
-### 7.1 Test Case Summary
+### 7.1 Testing Architecture
+
+The project uses two complementary testing approaches:
+
+| Type | Tool | Purpose | When Run |
+|------|------|---------|----------|
+| Unit Tests | pytest | Test build.py functions/behavior | Development (`uv run pytest`) |
+| Data Validation | validate.py | Verify output data quality | ETL pipeline (CI) |
+
+**Unit Tests** (`tests/test_build.py`):
+- Test ETL function behavior with mock data
+- Verify data cleaning transformations work correctly
+- Verify P/M/S ratio splitting logic
+- NOT part of ETL pipeline (tests code, not data)
+
+**Data Validation** (`validate.py`):
+- Run during ETL pipeline in CI
+- Verify record counts, referential integrity, data quality
+- See Section 8 for validation requirements
+
+### 7.2 Unit Test Coverage
+
+| Function | Test Focus | File |
+|----------|------------|------|
+| `clean_data()` | TRIM, REPLACE, TRY_CAST transformations | `tests/test_build.py` |
+| `create_normalized_tables()` | Table creation, P/M/S splitting | `tests/test_build.py` |
+| `check_fts5_support()` | FTS5 detection returns correct bool | `tests/test_build.py` |
+
+Run unit tests:
+```bash
+uv run pytest tests/ -v
+# or via devbox
+devbox run test
+```
+
+### 7.3 Query Test Case Summary
+
+The following test cases are reference scenarios for database usage. They document expected query patterns and results:
 
 | Test ID | Scenario | Test Type | Success Criteria |
 |---------|----------|-----------|------------------|
@@ -777,7 +814,7 @@ GROUP BY c.id ORDER BY food_count DESC;
 | T-FTS-4 | FTS mixed chars | FTS Query | Greek/English chars correctly matched |
 | T-FTS-5 | FTS special chars | FTS Query | β-胡蘿蔔素 style names matched |
 
-### 7.2 Sample Test Queries
+### 7.4 Sample Test Queries
 
 #### T1-1: Exact Name Query
 ```sql
