@@ -10,6 +10,9 @@ on:
         required: false
         type: boolean
         default: false
+  push:
+    branches:
+      - main
 
 jobs:
   etl:
