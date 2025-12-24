@@ -283,7 +283,7 @@ jobs:
           unzip food_data.zip -d data/
 
       - name: Run ETL
-        run: python build.py data/*.json nutrition.db --report report.json
+        run: python build.py nutrition.db --input data/*.json --report report.json
 
       - name: Verify FTS enabled
         run: |
