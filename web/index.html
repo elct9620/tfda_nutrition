@@ -82,8 +82,21 @@
 
                 <!-- Loading State -->
                 <div v-if="loading" class="text-center py-8">
-                    <div class="inline-block animate-spin w-8 h-8 border-4 border-secondary border-t-transparent"></div>
-                    <p class="mt-4 text-gray-600">Loading database...</p>
+                    <p class="mb-4 text-gray-600">
+                        <span v-if="loadingStage === 'sqljs'">Loading SQL.js...</span>
+                        <span v-else-if="loadingStage === 'downloading'">
+                            Downloading database... {{ formatBytes(downloadProgress.loaded) }} / {{ formatBytes(downloadProgress.total) }}
+                        </span>
+                        <span v-else>Initializing database...</span>
+                    </p>
+                    <div class="w-64 mx-auto h-2 bg-gray-200">
+                        <div class="h-full bg-secondary transition-all duration-150"
+                             :class="{ 'animate-pulse': loadingStage !== 'downloading' }"
+                             :style="{ width: loadingStage === 'downloading' && downloadProgress.total > 0
+                                 ? (downloadProgress.loaded / downloadProgress.total * 100) + '%'
+                                 : '100%' }">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Load Error -->
@@ -306,6 +319,8 @@
                 const activeTab = ref('categories');
                 const selectedExample = ref('');
                 const stats = ref({ foods: '--', nutrients: '--', categories: '--' });
+                const loadingStage = ref('sqljs'); // 'sqljs' | 'downloading' | 'initializing'
+                const downloadProgress = ref({ loaded: 0, total: 0 });
 
                 // Schema tables
                 const schemaTables = ['categories', 'nutrient_categories', 'foods', 'nutrients', 'food_nutrients'];
@@ -362,20 +377,58 @@ FROM categories c LEFT JOIN foods f ON f.category_id = c.id
 GROUP BY c.id ORDER BY food_count DESC;`
                 };
 
+                // Format bytes to MB
+                function formatBytes(bytes) {
+                    if (bytes === 0) return '0 B';
+                    const mb = bytes / (1024 * 1024);
+                    return mb.toFixed(1) + ' MB';
+                }
+
                 // Initialize database
                 async function initDatabase() {
                     try {
+                        // Stage 1: Load SQL.js
+                        loadingStage.value = 'sqljs';
                         const SQL = await initSqlJs({
                             locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/${file}`
                         });
 
+                        // Stage 2: Download database with progress tracking
+                        loadingStage.value = 'downloading';
                         const response = await fetch('nutrition.db');
                         if (!response.ok) {
                             throw new Error(`Failed to fetch database: ${response.status}`);
                         }
 
-                        const buffer = await response.arrayBuffer();
-                        db = new SQL.Database(new Uint8Array(buffer));
+                        // Get total size from Content-Length header, fallback to ~13MB estimate
+                        const contentLength = response.headers.get('Content-Length');
+                        const total = contentLength ? parseInt(contentLength, 10) : 13 * 1024 * 1024;
+                        downloadProgress.value = { loaded: 0, total };
+
+                        // Stream the response to track progress
+                        const reader = response.body.getReader();
+                        const chunks = [];
+                        let loaded = 0;
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            chunks.push(value);
+                            loaded += value.length;
+                            downloadProgress.value = { loaded, total };
+                        }
+
+                        // Combine chunks into single buffer
+                        const buffer = new Uint8Array(loaded);
+                        let offset = 0;
+                        for (const chunk of chunks) {
+                            buffer.set(chunk, offset);
+                            offset += chunk.length;
+                        }
+
+                        // Stage 3: Initialize database
+                        loadingStage.value = 'initializing';
+                        db = new SQL.Database(buffer);
 
                         updateStatistics();
                         loading.value = false;
@@ -450,6 +503,8 @@ GROUP BY c.id ORDER BY food_count DESC;`
                 return {
                     loading,
                     loadError,
+                    loadingStage,
+                    downloadProgress,
                     query,
                     queryError,
                     results,
@@ -458,6 +513,7 @@ GROUP BY c.id ORDER BY food_count DESC;`
                     selectedExample,
                     stats,
                     schemaTables,
+                    formatBytes,
                     runQuery,
                     loadExampleQuery,
                     handleKeydown

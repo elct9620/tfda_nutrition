@@ -364,6 +364,20 @@ Style: Sharp corners (`border-radius: 0`), system fonts, no external dependencie
 
 The playground includes a sticky "Schema Reference" panel with tabbed navigation for all 5 tables, showing columns, types, and foreign key relationships.
 
+#### Loading Progress Bar
+
+Multi-stage progress indicator for database loading (~13 MB):
+
+| Stage | Display | Progress Bar |
+|-------|---------|--------------|
+| 1. SQL.js init | "Loading SQL.js..." | Indeterminate (pulsing) |
+| 2. Download | "Downloading database... X.X MB / Y.Y MB" | Determinate (fills with progress) |
+| 3. Initialize | "Initializing database..." | Indeterminate (pulsing) |
+
+- Uses `fetch` with streaming to track download progress via `Content-Length` header
+- Falls back to estimated size (~13 MB) if header unavailable
+- Visual bar follows design tokens: `bg-secondary` fill, `bg-gray-200` track, sharp corners
+
 #### Page Layout
 
 ```
