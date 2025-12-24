@@ -115,3 +115,39 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pages:
+    needs: etl
+    if: github.event_name == 'schedule'  # Only on scheduled runs
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: etl-output
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site
+        run: |
+          mkdir -p dist
+          cp nutrition.db dist/
+          cp web/index.html dist/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
