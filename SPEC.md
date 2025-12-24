@@ -223,184 +223,60 @@ Output: 3 separate nutrient records:
 
 ### 5.1 Workflow Configuration
 
-```yaml
-# .github/workflows/etl.yml
-name: Food Nutrition ETL
+| Trigger | Condition | Jobs |
+|---------|-----------|------|
+| Schedule | Monthly on 1st (`0 0 1 * *`) | etl, release, pages |
+| Manual | `workflow_dispatch` with release option | etl, (release), pages |
+| Push | `main` branch | etl, pages |
 
+```yaml
 on:
   schedule:
     - cron: '0 0 1 * *'  # Monthly on 1st
-  workflow_dispatch:
-    inputs:
-      release:
-        description: 'Create a GitHub release'
-        required: false
-        type: boolean
-        default: false
+  workflow_dispatch: ...  # Manual trigger with release option
   push:
-    branches:
-      - main
-
+    branches: [main]
 jobs:
-  etl:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Generate version
-        id: version
-        run: |
-          git fetch --tags
-          BASE_VERSION="v$(date +%Y%m%d)"
-          SUFFIX=0
-          VERSION="$BASE_VERSION"
-          while git rev-parse "$VERSION" >/dev/null 2>&1; do
-            SUFFIX=$((SUFFIX + 1))
-            VERSION="${BASE_VERSION}.${SUFFIX}"
-          done
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          pip install duckdb
-          # Ensure system sqlite3 with FTS5 support is available
-          sudo apt-get update && sudo apt-get install -y sqlite3
-
-      - name: Verify FTS5 support
-        run: |
-          echo "SQLite version: $(sqlite3 --version)"
-          sqlite3 :memory: "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');"
-          echo "FTS5 trigram tokenizer supported"
-
-      - name: Download FDA data
-        run: |
-          curl -L -o food_data.zip \
-            "https://data.fda.gov.tw/data/opendata/export/20/json"
-          unzip food_data.zip -d data/
-
-      - name: Run ETL
-        run: python build.py nutrition.db --input data/*.json --report report.json
-
-      - name: Verify FTS enabled
-        run: |
-          # Ensure FTS was created successfully
-          FTS_ENABLED=$(jq -r '.fts_enabled' report.json)
-          if [ "$FTS_ENABLED" != "true" ]; then
-            echo "FTS5 was not enabled in the database"
-            exit 1
-          fi
-          # Verify FTS tables exist
-          FTS_COUNT=$(sqlite3 nutrition.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'")
-          if [ "$FTS_COUNT" != "2" ]; then
-            echo "Expected 2 FTS tables, found $FTS_COUNT"
-            exit 1
-          fi
-          echo "FTS5 verification passed"
-
-      - name: Run validation
-        run: python validate.py nutrition.db
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: etl-output
-          path: |
-            nutrition.db
-            report.json
-            USAGE.md
-
-      - name: Write Job Summary
-        run: |
-          echo "## Food Nutrition ETL Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Records | $(jq .counts.total_records report.json) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Foods | $(jq .counts.foods report.json) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Nutrients | $(jq .counts.nutrients report.json) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Categories | $(jq .counts.categories report.json) |" >> $GITHUB_STEP_SUMMARY
-          FTS_STATUS=$(jq -r '.fts_enabled | if . then "Enabled" else "Disabled" end' report.json)
-          echo "| FTS5 Full-Text Search | $FTS_STATUS |" >> $GITHUB_STEP_SUMMARY
-
-  release:
-    needs: etl
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.release == true)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0  # Required for GoReleaser changelog
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: etl-output
-
-      - name: Create Git tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ needs.etl.outputs.version }}
-          git push origin ${{ needs.etl.outputs.version }}
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  pages:
-    needs: etl
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: etl-output
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Build site
-        run: |
-          mkdir -p dist
-          cp nutrition.db dist/
-          cp web/index.html dist/
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+  etl: ...     # Download → Clean → Normalize → Export → Validate
+  release: ... # GoReleaser for GitHub Releases (schedule/manual only)
+  pages: ...   # Deploy playground to GitHub Pages
 ```
 
-### 5.2 Workflow Stages
+#### ETL Job Key Steps
+
+| Step | Purpose |
+|------|---------|
+| Generate version | Date-based versioning (vYYYYMMDD) with suffix for same-day runs |
+| Setup Python | Python 3.13 with DuckDB |
+| Install sqlite3 | System sqlite3 for FTS5 support |
+| Verify FTS5 | Fail early if trigram tokenizer unavailable |
+| Download FDA data | Fetch and unzip from official API |
+| Run ETL | Execute `build.py` with input/output paths |
+| Verify FTS enabled | Ensure FTS tables created (CI requirement) |
+| Run validation | Execute `validate.py` for data quality checks |
+| Upload artifacts | `nutrition.db`, `report.json`, `USAGE.md` |
+| Write Job Summary | Generate markdown report to `$GITHUB_STEP_SUMMARY` |
+
+#### Job Summary Format
+
+The ETL job writes a markdown summary for GitHub Actions UI:
+
+```markdown
+## Food Nutrition ETL Report
+
+**Version**: v20251224
+**Trigger**: schedule
+
+| Metric | Value |
+|--------|-------|
+| Total Records | 233527 |
+| Foods | 2181 |
+| Nutrients | 107 |
+| Categories | 18 |
+| FTS5 Full-Text Search | Enabled |
+```
+
+#### Workflow Stages
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -428,139 +304,51 @@ jobs:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 GoReleaser Configuration
+### 5.2 GoReleaser Configuration
 
 ```yaml
-# .goreleaser.yaml
 project_name: taiwan-food-nutrition
-
 builds: []  # No binary builds needed
-
 release:
   extra_files:
     - glob: nutrition.db
     - glob: USAGE.md
-
 checksum:
   name_template: 'checksums.txt'
-
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
+changelog: ...
 ```
 
-### 5.4 GitHub Pages Architecture
+### 5.3 GitHub Pages Architecture
 
-#### 5.4.1 Page Structure
-
-The GitHub Pages site is a single-page application with two main sections:
+#### Page Structure
 
 | Section | Purpose |
 |---------|---------|
 | Hero | Project overview, statistics, download button |
-| Playground | Interactive SQL query interface |
+| Playground | Interactive SQL query interface with schema reference |
 
-```
-web/
-  index.html       # Single-page application
-  nutrition.db     # SQLite database (copied during build)
-```
-
-#### 5.4.2 Design System
-
-**Design Tokens:**
+#### Design Tokens
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| Primary | `#0f2540` | Headers, primary text, dark backgrounds |
-| Secondary | `#51a8dd` | Links, interactive elements, highlights |
-| Accent 1 | `#eb7a77` | Error states, warnings |
-| Accent 2 | `#f9bf45` | CTA buttons, success states |
-| Background | `#ffffff` | Main page background |
+| Primary | `#0f2540` | Headers, dark backgrounds |
+| Secondary | `#51a8dd` | Links, Run Query button |
+| Accent 2 | `#f9bf45` | Download button |
 | Surface | `#f5f7fa` | Code blocks, result tables |
-| Border | `#e5e7eb` | Table borders, separators |
 
-**Style Guidelines:**
-- Border radius: `0` (sharp corners throughout)
-- Typography: System fonts (no external fonts)
-- Spacing scale: 8px, 16px, 24px, 32px
+Style: Sharp corners (`border-radius: 0`), system fonts, no external dependencies.
 
-#### 5.4.3 CDN Dependencies
+#### CDN Dependencies
 
-| Library | Version | CDN URL | Purpose |
-|---------|---------|---------|---------|
-| Vue.js | 3.x | `https://unpkg.com/vue@3/dist/vue.global.js` | Reactive UI framework |
-| TailwindCSS | 3.x | `https://cdn.tailwindcss.com` | Styling with custom config |
-| SQL.js | 1.11.0 | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js` | SQLite in browser |
-| SQL.js WASM | 1.11.0 | `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.wasm` | WASM binary |
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Vue.js | 3.x | Reactive UI (Composition API) |
+| TailwindCSS | 3.x | Styling with custom config |
+| SQL.js | 1.11.0 | SQLite in browser (WASM) |
 
-**Notes:**
-- **FTS5 is not available in the web playground.** Standard sql.js does not include FTS5, and available FTS5 forks lack the trigram tokenizer required by this database. Use `LIKE` queries for text search in the browser. FTS5 works when using the downloaded database with native SQLite.
-- Vue.js 3 Composition API provides reactive state management without build step
-- Tailwind CDN mode allows inline configuration without build step
-- No npm/yarn installation required
+> **FTS5 is not available in the web playground.** Standard sql.js does not include FTS5, and available FTS5 forks lack the trigram tokenizer. Use `LIKE` queries for text search in the browser. FTS5 works with the downloaded database using native SQLite.
 
-#### 5.4.4 HTML Structure
-
-```html
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taiwan Food Nutrition Database</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0f2540',
-                        secondary: '#51a8dd',
-                        accent1: '#eb7a77',
-                        accent2: '#f9bf45',
-                        surface: '#f5f7fa'
-                    },
-                    borderRadius: {
-                        DEFAULT: '0',
-                        'none': '0'
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body>
-    <div id="app">
-        <header><!-- Project title, GitHub link --></header>
-        <section id="hero"><!-- Statistics, Download button --></section>
-        <section id="playground"><!-- Query input, Example selector, Results --></section>
-        <footer><!-- Attribution, License --></footer>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.js"></script>
-    <script>/* Vue 3 Composition API application */</script>
-</body>
-</html>
-```
-
-#### 5.4.5 Component Specifications
-
-| Component | Height | Background | Content |
-|-----------|--------|------------|---------|
-| Header | 64px | Primary (`#0f2540`) | Project title, GitHub link |
-| Hero | Auto | White | Statistics cards, Download button |
-| Playground | Auto | Surface (`#f5f7fa`) | Query textarea, Example dropdown, Results table, Schema reference (side panel) |
-| Footer | Auto | Surface (`#f5f7fa`) | Data source, License, Version |
-
-**Button Styles:**
-- Download: Accent 2 (`#f9bf45`) background, Primary text
-- Run Query: Secondary (`#51a8dd`) background, White text
-
-#### 5.4.6 Example Queries for Playground
+#### Example Queries
 
 | Label | Description |
 |-------|-------------|
@@ -572,125 +360,15 @@ web/
 | Vitamin Search | Search nutrients containing vitamin |
 | Category List | All categories with food counts |
 
-> **Note:** FTS5 full-text search is not available in the web playground due to sql.js limitations. Use `LIKE` queries for text search. FTS5 works with the downloaded database using native SQLite.
+#### Schema Reference Panel
 
-**Query Implementations:**
+The playground includes a sticky "Schema Reference" panel with tabbed navigation for all 5 tables, showing columns, types, and foreign key relationships.
 
-```sql
--- 1. High Protein Foods
-SELECT f.name_zh, fn.value_per_100g as protein_g
-FROM foods f
-JOIN food_nutrients fn ON f.id = fn.food_id
-JOIN nutrients n ON fn.nutrient_id = n.id
-WHERE n.name = '粗蛋白'
-ORDER BY protein_g DESC LIMIT 10;
-
--- 2. Search by Name
-SELECT f.code, f.name_zh, f.name_en, c.name as category
-FROM foods f
-JOIN categories c ON f.category_id = c.id
-WHERE f.name_zh LIKE '%雞%' LIMIT 20;
-
--- 3. Food Nutrients
-SELECT n.name, fn.value_per_100g, n.unit
-FROM foods f
-JOIN food_nutrients fn ON f.id = fn.food_id
-JOIN nutrients n ON fn.nutrient_id = n.id
-WHERE f.name_zh = '白飯'
-ORDER BY n.id;
-
--- 4. High Protein + Low Fat
-SELECT f.name_zh,
-    MAX(CASE WHEN n.name = '粗蛋白' THEN fn.value_per_100g END) as protein,
-    MAX(CASE WHEN n.name = '粗脂肪' THEN fn.value_per_100g END) as fat
-FROM foods f
-JOIN food_nutrients fn ON f.id = fn.food_id
-JOIN nutrients n ON fn.nutrient_id = n.id
-WHERE n.name IN ('粗蛋白', '粗脂肪')
-GROUP BY f.id HAVING protein > 20 AND fat < 5
-ORDER BY protein DESC LIMIT 10;
-
--- 5. Recipe Calculation
-WITH recipe AS (
-    SELECT '大番茄平均值(紅色系)' as ingredient, 200.0 as grams
-    UNION ALL SELECT '土雞蛋', 120.0
-    UNION ALL SELECT '調合植物油', 10.0
-)
-SELECT n.name, ROUND(SUM(fn.value_per_100g * r.grams / 100), 1) as value, n.unit
-FROM recipe r
-JOIN foods f ON f.name_zh = r.ingredient
-JOIN food_nutrients fn ON f.id = fn.food_id
-JOIN nutrients n ON fn.nutrient_id = n.id
-WHERE n.name IN ('熱量', '粗蛋白', '粗脂肪', '總碳水化合物')
-GROUP BY n.name, n.unit;
-
--- 6. Vitamin Search
-SELECT n.name, n.unit FROM nutrients n
-WHERE n.name LIKE '%維生素%' ORDER BY n.name;
-
--- 7. Category List
-SELECT c.name, COUNT(f.id) as food_count
-FROM categories c LEFT JOIN foods f ON f.category_id = c.id
-GROUP BY c.id ORDER BY food_count DESC;
-```
-
-#### 5.4.7 Schema Reference
-
-The playground includes a "Schema Reference" panel on the right side with tabbed navigation:
-- 5 tabs: `categories`, `nutrient_categories`, `foods`, `nutrients`, `food_nutrients`
-- Each tab displays the table's columns and types
-- Foreign key relationships shown below each table
-
-The panel is sticky, allowing users to reference the database structure while writing SQL queries. On mobile, the schema panel appears below the query area.
-
-#### 5.4.8 JavaScript Application Logic
-
-The application uses Vue 3 Composition API for reactive state management.
-
-**Reactive State:**
-
-| State | Type | Description |
-|-------|------|-------------|
-| `loading` | `ref(boolean)` | Database loading state |
-| `loadError` | `ref(string)` | Database load error message |
-| `query` | `ref(string)` | Current SQL query text |
-| `queryError` | `ref(string)` | Query execution error message |
-| `results` | `ref(object)` | Query results (columns, values) |
-| `querySuccess` | `ref(boolean)` | Query executed with no results |
-| `activeTab` | `ref(string)` | Active schema tab |
-| `selectedExample` | `ref(string)` | Selected example query key |
-| `stats` | `ref(object)` | Statistics (foods, nutrients, categories) |
-
-**Initialization Flow:**
-1. Vue app mounts to `#app` element
-2. `onMounted` triggers `initDatabase()`
-3. Load SQL.js WASM module
-4. Fetch `nutrition.db` via HTTP
-5. Initialize database in memory
-6. Extract statistics for hero section
-7. Set `loading` to `false` to reveal playground
-
-**Key Functions:**
-
-| Function | Description |
-|----------|-------------|
-| `initDatabase()` | Load SQL.js and fetch nutrition.db |
-| `updateStatistics()` | Query counts and update stats ref |
-| `runQuery()` | Execute SQL and update results/error refs |
-| `loadExampleQuery()` | Set query ref from selected example |
-| `handleKeydown(e)` | Ctrl+Enter to run query |
-
-**Error Handling:**
-- Display user-friendly messages for SQL syntax errors
-- Show loading states during database fetch
-- Handle network failures gracefully
-
-#### 5.4.9 Architecture Diagram
+#### Page Layout
 
 ```
 +-------------------------------------------------------------------+
 |                       GitHub Pages                                 |
-|                  https://user.github.io/repo                       |
 +-------------------------------------------------------------------+
 |                                                                    |
 |  +--------------------------------------------------------------+ |
@@ -719,8 +397,6 @@ The application uses Vue 3 Composition API for reactive state management.
 |  |  |  +----------------------------------------------------+   | | |
 |  |  |  +----------------------------------------------------+   | | |
 |  |  |  |  Results Table                                      |   | | |
-|  |  |  |  | id | name_zh | name_en | category |              |   | | |
-|  |  |  |  | 1  | 白飯    | Rice    | 穀物類   |              |   | | |
 |  |  |  +----------------------------------------------------+   | | |
 |  |  +----------------------------------------------------------+ | |
 |  |                                                                | |
@@ -734,48 +410,28 @@ The application uses Vue 3 Composition API for reactive state management.
 +-------------------------------------------------------------------+
 ```
 
-### 5.5 Test Workflow
+### 5.4 Test Workflow
 
-The test workflow runs unit tests on every push and pull request.
+| Trigger | Jobs |
+|---------|------|
+| Push to `main` | test |
+| Pull request to `main` | test |
 
 ```yaml
-# .github/workflows/test.yml
-name: Test
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   test:
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install dependencies
-        run: uv sync --dev
-
-      - name: Run pytest
-        run: uv run pytest tests/ -v
+      - name: Set up Python ...
+      - name: Install uv ...
+      - name: Install dependencies ...
+      - run: uv run pytest tests/ -v
 ```
-
-| Step | Purpose |
-|------|---------|
-| Checkout | Clone repository |
-| Setup Python | Install Python 3.13 |
-| Install uv | Install uv package manager |
-| Install dependencies | Sync dev dependencies |
-| Run pytest | Execute test suite |
 
 ## 6. Use Cases & Decision Tables
 
@@ -997,18 +653,9 @@ The following test cases are reference scenarios for database usage. They docume
 | T-FTS-4 | FTS mixed chars | FTS Query | Greek/English chars correctly matched |
 | T-FTS-5 | FTS special chars | FTS Query | β-胡蘿蔔素 style names matched |
 
-### 7.6 Sample Test Queries
+### 7.6 Key Test Query Examples
 
-#### T1-1: Exact Name Query
-```sql
-SELECT f.name_zh, n.name, fn.value_per_100g, n.unit
-FROM foods f
-JOIN food_nutrients fn ON f.id = fn.food_id
-JOIN nutrients n ON fn.nutrient_id = n.id
-WHERE f.name_zh = '白飯'
-  AND n.name IN ('熱量', '粗蛋白', '總碳水化合物');
-```
-**Expected**: Returns calorie, protein, and carbohydrate values for white rice.
+Representative SQL patterns for implementing the test cases above:
 
 #### T5-1: High Protein + Low Fat Filter
 ```sql
@@ -1024,9 +671,8 @@ GROUP BY f.id
 HAVING protein > 20 AND fat < 5
 ORDER BY protein DESC LIMIT 10;
 ```
-**Expected**: Returns foods with >20g protein and <5g fat per 100g.
 
-#### T6-1: Recipe Calculation
+#### T6-1: Recipe Calculation (Weighted Sum)
 ```sql
 WITH recipe AS (
     SELECT '大番茄平均值(紅色系)' as ingredient, 200.0 as grams
@@ -1041,51 +687,15 @@ JOIN nutrients n ON fn.nutrient_id = n.id
 WHERE n.name IN ('熱量', '粗蛋白', '粗脂肪')
 GROUP BY n.name, n.unit;
 ```
-**Expected**: Returns weighted sum of nutrients for the recipe.
 
-#### T-FTS-1: FTS 3+ Character MATCH
+#### T-FTS-1: FTS Search (3+ Characters)
 ```sql
--- Search using FTS MATCH for 3+ characters
-SELECT * FROM foods_fts WHERE foods_fts MATCH '維生素';
+-- FTS MATCH for 3+ character queries
+SELECT * FROM foods_fts WHERE foods_fts MATCH '雞胸肉';
 SELECT * FROM nutrients_fts WHERE nutrients_fts MATCH '維生素';
-```
-**Expected**: Returns all vitamin-related nutrients (維生素A, B1, B12, etc.)
 
-#### T-FTS-2: FTS 2 Character LIKE
-```sql
--- Search using LIKE for 1-2 characters (still uses index)
-SELECT * FROM foods_fts WHERE name_zh LIKE '%蛋白%';
-SELECT * FROM nutrients_fts WHERE name LIKE '%脂肪%';
-```
-**Expected**: Returns 粗蛋白 and 粗脂肪 respectively with indexed performance.
-
-#### T-FTS-3: FTS Chinese Search
-```sql
--- Chinese food name search
-SELECT * FROM foods_fts WHERE foods_fts MATCH '里肌肉';
-```
-**Expected**: Returns 里肌肉(土雞), 里肌肉(肉雞), 豬大里肌 etc.
-
-#### T-FTS-4: FTS Mixed Characters
-```sql
--- Mixed character search (alphanumeric)
-SELECT * FROM nutrients_fts WHERE name LIKE '%B1%';
-SELECT * FROM foods_fts WHERE name_zh LIKE '%DHA%';
-```
-**Expected**: Returns 維生素B1, B12 and DHA-related items.
-
-#### T-FTS-5: FTS Special Characters
-```sql
--- Special character search (Greek letters)
-SELECT * FROM nutrients_fts WHERE nutrients_fts MATCH '胡蘿蔔';
-```
-**Expected**: Returns β-胡蘿蔔素 correctly.
-
-#### Verify FTS Index Usage
-```sql
--- Verify LIKE query uses FTS index
-EXPLAIN QUERY PLAN SELECT * FROM foods_fts WHERE name_zh LIKE '%雞%';
--- Expected: VIRTUAL TABLE INDEX (not full table scan)
+-- LIKE for 1-2 character queries (still uses FTS index)
+SELECT * FROM foods_fts WHERE name_zh LIKE '%蛋%';
 ```
 
 ## 8. Validation Requirements
@@ -1167,60 +777,6 @@ EXPLAIN QUERY PLAN SELECT * FROM foods_fts WHERE name_zh LIKE '%雞%';
 |-------|-------------|
 | fts_enabled | `true` if FTS5 tables were created, `false` if environment lacks support |
 
-### 9.4 USAGE.md Template
-
-The release USAGE.md should contain database schema and usage information:
-
-```markdown
-# Taiwan Food Nutrition Database
-
-SQLite database containing nutritional information for Taiwanese foods.
-
-## Data Source
-
-- **Provider**: Taiwan Food and Drug Administration (TFDA)
-- **License**: Taiwan Open Government Data License
-
-## Database Schema
-
-### Tables
-
-| Table | Description |
-|-------|-------------|
-| categories | Food categories (18 types) |
-| nutrient_categories | Nutrient groupings (11 types) |
-| foods | Food items with metadata |
-| nutrients | Nutrient definitions with units |
-| food_nutrients | Nutrient values per food (M:N relation) |
-
-### Entity Relationship
-
-    categories 1──N foods N──M nutrients N──1 nutrient_categories
-                         └──────food_nutrients──────┘
-
-### Key Columns
-
-**foods**: id, code, name_zh, name_en, category_id, waste_rate, serving_size
-**nutrients**: id, category_id, name, unit
-**food_nutrients**: food_id, nutrient_id, value_per_100g, sample_count, std_deviation
-
-## Example Queries
-
-### Find high-protein foods
-    SELECT f.name_zh, fn.value_per_100g as protein
-    FROM foods f
-    JOIN food_nutrients fn ON f.id = fn.food_id
-    JOIN nutrients n ON fn.nutrient_id = n.id
-    WHERE n.name = '粗蛋白'
-    ORDER BY protein DESC LIMIT 10;
-
-### Get all nutrients for a food
-    SELECT n.name, fn.value_per_100g, n.unit
-    FROM food_nutrients fn
-    JOIN nutrients n ON fn.nutrient_id = n.id
-    WHERE fn.food_id = 1;
-```
-
 ## 10. Future Enhancements
 
 ### 10.1 Planned Features
@@ -1244,56 +800,28 @@ FTS5 with trigram tokenizer is implemented, providing substring matching without
 | SQLite | 3.34.0+ with FTS5 | System `sqlite3` command must support FTS5 trigram |
 | Python sqlite3 | Not required for FTS | Python module typically lacks FTS5; ETL uses subprocess |
 
-#### CI Environment (GitHub Actions)
-
-The GitHub Actions workflow explicitly installs `sqlite3` package to ensure FTS5 support:
-
-```yaml
-- name: Install dependencies
-  run: |
-    pip install duckdb
-    sudo apt-get update && sudo apt-get install -y sqlite3
-
-- name: Verify FTS5 support
-  run: |
-    sqlite3 :memory: "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');"
-```
-
-FTS5 is **required** in CI - the workflow will fail if FTS5 is not available.
-
-#### Local Environment (Graceful Degradation)
-
-For local development, the ETL pipeline detects FTS5 support at runtime:
-
-```bash
-# Check FTS5 trigram support
-sqlite3 :memory: "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');"
-```
+#### Environment Behavior
 
 | Environment | Behavior | Database Capability |
 |-------------|----------|---------------------|
-| FTS5 supported | Creates FTS indexes | Full functionality with fast full-text search |
-| FTS5 not supported | Skips FTS creation with warning | Basic functionality using LIKE queries (slower) |
+| CI (GitHub Actions) | FTS5 **required** - workflow fails if unavailable | Full FTS5 support |
+| Local (FTS5 supported) | Creates FTS indexes | Full functionality |
+| Local (FTS5 not supported) | Skips FTS creation with warning | Basic LIKE queries only |
 
 The `fts_enabled` field in the report file records the FTS status.
 
 #### FTS5 Tables
 
 ```sql
--- FTS5 tables with trigram tokenizer (no external dependencies)
 CREATE VIRTUAL TABLE foods_fts USING fts5(
-    name_zh,
-    name_en,
-    alias,
-    content='foods',
-    content_rowid='id',
+    name_zh, name_en, alias,
+    content='foods', content_rowid='id',
     tokenize='trigram'
 );
 
 CREATE VIRTUAL TABLE nutrients_fts USING fts5(
     name,
-    content='nutrients',
-    content_rowid='id',
+    content='nutrients', content_rowid='id',
     tokenize='trigram'
 );
 ```
@@ -1305,75 +833,7 @@ CREATE VIRTUAL TABLE nutrients_fts USING fts5(
 | 3+ characters | FTS MATCH | `WHERE foods_fts MATCH '雞胸肉'` |
 | 1-2 characters | LIKE (indexed) | `WHERE name_zh LIKE '%蛋%'` |
 
-Both methods use FTS indexes for acceleration (when FTS5 is available).
-
-### 10.3 Future: Synonym Table
-
-```sql
--- Synonym table for AI integration
-CREATE TABLE food_synonyms (
-    id INTEGER PRIMARY KEY,
-    food_id INTEGER REFERENCES foods(id),
-    synonym TEXT NOT NULL,
-    source TEXT  -- 'common', 'ai', 'user'
-);
-
--- Example synonyms
--- 雞胸肉 → 里肌肉(土雞), 里肌肉(肉雞)
--- 白飯 → 白飯, 米飯
-```
-
-## 11. Usage Examples
-
-### 11.1 Basic Query
-
-```python
-import sqlite3
-
-conn = sqlite3.connect('nutrition.db')
-
-# Find high-protein foods
-cursor = conn.execute('''
-    SELECT f.name_zh, fn.value_per_100g as protein
-    FROM foods f
-    JOIN food_nutrients fn ON f.id = fn.food_id
-    JOIN nutrients n ON fn.nutrient_id = n.id
-    WHERE n.name = '粗蛋白'
-    ORDER BY protein DESC
-    LIMIT 10
-''')
-
-for row in cursor:
-    print(f"{row[0]}: {row[1]}g protein")
-```
-
-### 11.2 Integration with AI
-
-```python
-# Pseudo-code for AI food recognition integration
-def get_nutrition_from_image(image_path):
-    # Step 1: AI identifies food
-    recognized_food = ai_model.recognize(image_path)
-    # Result: "白飯" or ["白飯", "雞腿", "青菜"]
-
-    # Step 2: Query database with fuzzy matching
-    foods = db.query('''
-        SELECT * FROM foods
-        WHERE name_zh LIKE ?
-    ''', f'%{recognized_food}%')
-
-    # Step 3: Get nutrition data
-    nutrition = db.query('''
-        SELECT n.name, fn.value_per_100g, n.unit
-        FROM food_nutrients fn
-        JOIN nutrients n ON fn.nutrient_id = n.id
-        WHERE fn.food_id = ?
-    ''', foods[0]['id'])
-
-    return nutrition
-```
-
-## 12. License & Attribution
+## 11. License & Attribution
 
 - **Data Source**: Taiwan Food and Drug Administration
 - **Data License**: Taiwan Open Government Data License
