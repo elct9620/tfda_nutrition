@@ -211,7 +211,7 @@ def create_normalized_tables(conn: duckdb.DuckDBPyConnection) -> dict:
             SELECT
                 f.id AS food_id,
                 n.id AS nutrient_id,
-                TRY_CAST(SPLIT_PART(d.value_raw, '/', idx) AS DOUBLE) AS value_per_100g,
+                TRY_CAST(TRIM(SPLIT_PART(d.value_raw, '/', idx)) AS DOUBLE) AS value_per_100g,
                 d.sample_count,
                 d.std_deviation
             FROM cleaned_data d

@@ -771,7 +771,111 @@ The project uses two complementary testing approaches:
 - Verify record counts, referential integrity, data quality
 - See Section 8 for validation requirements
 
-### 7.2 Unit Test Coverage
+### 7.2 Data Cleaning Decision Tables
+
+Decision tables document the transformation logic (conditions → actions):
+
+#### 7.2.1 Numeric Field Parsing
+
+| Condition | Action |
+|-----------|--------|
+| Has leading/trailing whitespace | TRIM before cast |
+| Contains `%` suffix | REPLACE('%', '') then cast |
+| Contains `克` suffix | REPLACE('克', '') then cast |
+| Contains full-width space `　` | REPLACE to remove |
+| Invalid numeric format | TRY_CAST returns NULL |
+| Empty string | Returns NULL |
+| Scientific notation (e.g., `1.5e-3`) | Supported, converts to decimal |
+| Negative numbers | Accepted as-is |
+
+#### 7.2.2 P/M/S Ratio Splitting
+
+| Condition | Has 2+ slashes | Values are numeric | Action |
+|-----------|:--------------:|:-----------------:|--------|
+| Valid P/M/S | Y | Y | Split into 3 nutrient records |
+| Missing part (e.g., `1.52/1.89`) | N | - | Filter out (no records) |
+| Extra parts (e.g., `1.52/1.89/1.00/0.5`) | Y | Y | Use first 3 values only |
+| Spaces around slashes | Y | Y | TRIM each part, then split |
+| Non-numeric values | Y | N | Create records with NULL values |
+| Empty string | N | - | Filter out |
+| NULL input | - | - | Filter out |
+
+#### 7.2.3 String Normalization
+
+| Condition | Field Applies To | Action |
+|-----------|------------------|--------|
+| Leading/trailing whitespace | All text fields | TRIM |
+| Double space `"  "` | nutrient_category | REPLACE with single space |
+| Triple+ spaces | nutrient_category | Only first double→single applied |
+| Empty string after TRIM | Optional fields (name_en, alias, description) | NULLIF to NULL |
+| Special chars (Greek, etc.) | All text fields | Preserve as-is |
+| Tab characters | All text fields | Preserve as-is |
+
+#### 7.2.4 NULL Propagation
+
+| Input State | Field Type | Action |
+|-------------|------------|--------|
+| NULL | Required (code, name_zh) | Stays NULL (validation catches) |
+| NULL | Optional (alias, etc.) | Stays NULL |
+| Empty string `""` | Optional fields | Convert to NULL via NULLIF |
+| Whitespace only `"   "` | All fields | TRIM to empty, then NULLIF |
+
+### 7.3 Unit Test Cases
+
+Test case tables document what each unit test verifies:
+
+#### 7.3.1 Numeric Parsing Test Cases
+
+| Test ID | Input | Field | Expected | Verifies |
+|---------|-------|-------|----------|----------|
+| TC-NUM-1 | `"  10.5  "` | waste_rate | `10.5` | Whitespace trimming |
+| TC-NUM-2 | `"50%"` | waste_rate | `50.0` | Percent sign removal |
+| TC-NUM-3 | `"150%"` | waste_rate | `150.0` | Values >100 accepted |
+| TC-NUM-4 | `"-5%"` | waste_rate | `-5.0` | Negative values accepted |
+| TC-NUM-5 | `"abc"` | waste_rate | `NULL` | Invalid format handling |
+| TC-NUM-6 | `"100克"` | serving_size | `100.0` | Chinese suffix removal |
+| TC-NUM-7 | `"　50　"` | serving_size | `50.0` | Full-width space removal |
+| TC-NUM-8 | `""` | serving_size | `NULL` | Empty string handling |
+| TC-NUM-9 | `"1.5e-3"` | std_deviation | `0.0015` | Scientific notation supported |
+| TC-NUM-10 | `"-0.5"` | std_deviation | `-0.5` | Negative decimals |
+
+#### 7.3.2 P/M/S Ratio Test Cases
+
+| Test ID | Input | Expected Records | Verifies |
+|---------|-------|------------------|----------|
+| TC-PMS-1 | `"1.52/1.89/1.00"` | 3 (P=1.52, M=1.89, S=1.00) | Normal splitting |
+| TC-PMS-2 | `"1.52/1.89"` | 0 (filtered) | Insufficient parts rejection |
+| TC-PMS-3 | `"1.52/1.89/1.00/0.5"` | 3 (extra ignored) | Extra parts handling |
+| TC-PMS-4 | `"1.52 / 1.89 / 1.00"` | 3 (P=1.52, M=1.89, S=1.00) | Spaces around slashes |
+| TC-PMS-5 | `" 1.52 / 1.89 / 1.00 "` | 3 | Leading/trailing spaces |
+| TC-PMS-6 | `"a/b/c"` | 3 (all NULL values) | Non-numeric handling |
+| TC-PMS-7 | `""` | 0 (filtered) | Empty string rejection |
+| TC-PMS-8 | `NULL` | 0 (filtered) | NULL rejection |
+| TC-PMS-9 | `"0/0/0"` | 3 (all zeros) | Zero values valid |
+| TC-PMS-10 | `"-1.52/1.89/1.00"` | 3 (negative accepted) | Negative values |
+| TC-PMS-11 | `"///"` | 3 (all NULL values) | Empty parts handling |
+
+#### 7.3.3 String Normalization Test Cases
+
+| Test ID | Input | Field | Expected | Verifies |
+|---------|-------|-------|----------|----------|
+| TC-STR-1 | `"維生素B群  & C"` | nutrient_category | `"維生素B群 & C"` | Double space collapse |
+| TC-STR-2 | `"維生素B群   C"` | nutrient_category | `"維生素B群  C"` | Only first double→single |
+| TC-STR-3 | `"  白飯  "` | name_zh | `"白飯"` | Trim whitespace |
+| TC-STR-4 | `""` | name_en | `NULL` | Empty to NULL |
+| TC-STR-5 | `"β-胡蘿蔔素"` | nutrient_name | `"β-胡蘿蔔素"` | Greek letters preserved |
+| TC-STR-6 | `"維生素\tB群"` | nutrient_category | `"維生素\tB群"` | Tab preserved |
+
+#### 7.3.4 NULL Handling Test Cases
+
+| Test ID | Input | Field | Expected | Verifies |
+|---------|-------|-------|----------|----------|
+| TC-NULL-1 | `NULL` | code | `NULL` | NULL passthrough |
+| TC-NULL-2 | `""` | alias | `NULL` | Empty to NULL via NULLIF |
+| TC-NULL-3 | `"   "` | description | `NULL` | Whitespace-only to NULL |
+| TC-NULL-4 | `NULL` | value_raw | `NULL` | NULL stays string type |
+
+### 7.4 Unit Test Coverage
 
 | Function | Test Focus | File |
 |----------|------------|------|
@@ -786,7 +890,7 @@ uv run pytest tests/ -v
 devbox run test
 ```
 
-### 7.3 Query Test Case Summary
+### 7.5 Query Test Case Summary
 
 The following test cases are reference scenarios for database usage. They document expected query patterns and results:
 
@@ -814,7 +918,7 @@ The following test cases are reference scenarios for database usage. They docume
 | T-FTS-4 | FTS mixed chars | FTS Query | Greek/English chars correctly matched |
 | T-FTS-5 | FTS special chars | FTS Query | β-胡蘿蔔素 style names matched |
 
-### 7.4 Sample Test Queries
+### 7.6 Sample Test Queries
 
 #### T1-1: Exact Name Query
 ```sql
