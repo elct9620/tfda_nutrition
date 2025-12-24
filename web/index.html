@@ -75,7 +75,7 @@
 
     <!-- Playground Section -->
     <section id="playground" class="bg-surface flex-1 py-8 md:py-12 px-4 md:px-8">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-7xl mx-auto">
             <h2 class="text-xl md:text-2xl font-bold mb-6">SQL Playground</h2>
 
             <!-- Loading State -->
@@ -86,49 +86,157 @@
 
             <!-- Playground Content (hidden until loaded) -->
             <div id="playground-content" class="hidden">
-                <!-- FTS5 Notice -->
-                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 text-sm text-amber-800">
-                    <strong>Note:</strong> FTS5 full-text search is not available in this playground. Use <code>LIKE</code> for text search. FTS5 works with the downloaded database.
-                </div>
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Left Column: Query Area -->
+                    <div class="flex-1 min-w-0">
+                        <!-- FTS5 Notice -->
+                        <div class="mb-4 p-3 bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                            <strong>Note:</strong> FTS5 full-text search is not available in this playground. Use <code>LIKE</code> for text search. FTS5 works with the downloaded database.
+                        </div>
 
-                <!-- Example Queries -->
-                <div class="mb-4">
-                    <label for="examples" class="block text-sm font-medium mb-2">Example Queries</label>
-                    <select id="examples" class="w-full md:w-auto border border-gray-300 bg-white px-4 py-2">
-                        <option value="">-- Select an example --</option>
-                        <option value="high-protein">High Protein Foods</option>
-                        <option value="search-name">Search by Name (LIKE)</option>
-                        <option value="food-nutrients">Food Nutrients</option>
-                        <option value="high-protein-low-fat">High Protein + Low Fat</option>
-                        <option value="recipe">Recipe Calculation</option>
-                        <option value="vitamins">Vitamin Search</option>
-                        <option value="categories">Category List</option>
-                    </select>
-                </div>
+                        <!-- Example Queries -->
+                        <div class="mb-4">
+                            <label for="examples" class="block text-sm font-medium mb-2">Example Queries</label>
+                            <select id="examples" class="w-full md:w-auto border border-gray-300 bg-white px-4 py-2">
+                                <option value="">-- Select an example --</option>
+                                <option value="high-protein">High Protein Foods</option>
+                                <option value="search-name">Search by Name (LIKE)</option>
+                                <option value="food-nutrients">Food Nutrients</option>
+                                <option value="high-protein-low-fat">High Protein + Low Fat</option>
+                                <option value="recipe">Recipe Calculation</option>
+                                <option value="vitamins">Vitamin Search</option>
+                                <option value="categories">Category List</option>
+                            </select>
+                        </div>
 
-                <!-- Query Input -->
-                <div class="mb-4">
-                    <label for="query" class="block text-sm font-medium mb-2">SQL Query</label>
-                    <textarea id="query" rows="6"
-                        class="w-full border border-gray-300 bg-white px-4 py-3 font-mono text-sm"
-                        placeholder="SELECT * FROM foods LIMIT 10;">SELECT * FROM foods LIMIT 10;</textarea>
-                </div>
+                        <!-- Query Input -->
+                        <div class="mb-4">
+                            <label for="query" class="block text-sm font-medium mb-2">SQL Query</label>
+                            <textarea id="query" rows="6"
+                                class="w-full border border-gray-300 bg-white px-4 py-3 font-mono text-sm"
+                                placeholder="SELECT * FROM foods LIMIT 10;">SELECT * FROM foods LIMIT 10;</textarea>
+                        </div>
 
-                <!-- Run Button -->
-                <div class="mb-6">
-                    <button id="run-btn" onclick="runQuery()"
-                        class="bg-secondary text-white font-bold py-2 px-6 hover:opacity-90 transition-opacity">
-                        Run Query
-                    </button>
-                </div>
+                        <!-- Run Button -->
+                        <div class="mb-6">
+                            <button id="run-btn" onclick="runQuery()"
+                                class="bg-secondary text-white font-bold py-2 px-6 hover:opacity-90 transition-opacity">
+                                Run Query
+                            </button>
+                        </div>
 
-                <!-- Error Display -->
-                <div id="error" class="hidden bg-accent1 bg-opacity-10 border border-accent1 text-accent1 p-4 mb-4">
-                </div>
+                        <!-- Error Display -->
+                        <div id="error" class="hidden bg-accent1 bg-opacity-10 border border-accent1 text-accent1 p-4 mb-4">
+                        </div>
 
-                <!-- Results -->
-                <div id="results" class="overflow-x-auto">
-                    <p class="text-gray-500">Run a query to see results</p>
+                        <!-- Results -->
+                        <div id="results" class="overflow-x-auto">
+                            <p class="text-gray-500">Run a query to see results</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Schema Reference -->
+                    <div class="lg:w-96 lg:flex-shrink-0">
+                        <div class="lg:sticky lg:top-4">
+                            <h3 class="text-lg font-bold mb-4">Schema Reference</h3>
+                            <!-- Schema Tabs -->
+                            <div class="flex flex-wrap gap-1 mb-4">
+                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-secondary text-white" data-table="categories">categories</button>
+                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="nutrient_categories">nutrient_categories</button>
+                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="foods">foods</button>
+                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="nutrients">nutrients</button>
+                                <button class="schema-tab px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300" data-table="food_nutrients">food_nutrients</button>
+                            </div>
+                            <!-- Schema Content -->
+                            <div id="schema-categories" class="schema-panel">
+                                <table class="w-full border-collapse bg-white text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                    </tbody>
+                                </table>
+                                <p class="mt-2 text-xs text-gray-600">Food categories (e.g., 穀物類, 肉類)</p>
+                            </div>
+                            <div id="schema-nutrient_categories" class="schema-panel hidden">
+                                <table class="w-full border-collapse bg-white text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                    </tbody>
+                                </table>
+                                <p class="mt-2 text-xs text-gray-600">Nutrient groups (e.g., 維生素, 礦物質)</p>
+                            </div>
+                            <div id="schema-foods" class="schema-panel hidden">
+                                <table class="w-full border-collapse bg-white text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">code</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT UNIQUE</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name_zh</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name_en</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">category_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER FK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">alias</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">description</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">waste_rate</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">serving_size</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                    </tbody>
+                                </table>
+                                <p class="mt-2 text-xs text-gray-600">category_id → categories.id</p>
+                            </div>
+                            <div id="schema-nutrients" class="schema-panel hidden">
+                                <table class="w-full border-collapse bg-white text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">category_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER FK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">name</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">unit</td><td class="border border-gray-300 px-2 py-1 text-xs">TEXT NULL</td></tr>
+                                    </tbody>
+                                </table>
+                                <p class="mt-2 text-xs text-gray-600">category_id → nutrient_categories.id<br>Units: mg, g, ug, kcal, I.U.</p>
+                            </div>
+                            <div id="schema-food_nutrients" class="schema-panel hidden">
+                                <table class="w-full border-collapse bg-white text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Column</th>
+                                            <th class="border border-gray-300 px-2 py-1 bg-primary text-white text-left">Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">food_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK,FK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">nutrient_id</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER PK,FK</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">value_per_100g</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">sample_count</td><td class="border border-gray-300 px-2 py-1 text-xs">INTEGER NULL</td></tr>
+                                        <tr><td class="border border-gray-300 px-2 py-1 font-mono text-xs">std_deviation</td><td class="border border-gray-300 px-2 py-1 text-xs">REAL NULL</td></tr>
+                                    </tbody>
+                                </table>
+                                <p class="mt-2 text-xs text-gray-600">food_id → foods.id<br>nutrient_id → nutrients.id</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -316,6 +424,23 @@ GROUP BY c.id ORDER BY food_count DESC;`
             if (e.ctrlKey && e.key === 'Enter') {
                 runQuery();
             }
+        });
+
+        // Schema tab switching
+        document.querySelectorAll('.schema-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const table = this.dataset.table;
+                // Update tab styles
+                document.querySelectorAll('.schema-tab').forEach(t => {
+                    t.classList.remove('bg-secondary', 'text-white');
+                    t.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                this.classList.add('bg-secondary', 'text-white');
+                // Show selected panel
+                document.querySelectorAll('.schema-panel').forEach(p => p.classList.add('hidden'));
+                document.getElementById('schema-' + table).classList.remove('hidden');
+            });
         });
 
         // Initialize on page load

@@ -545,7 +545,7 @@ web/
 |-----------|--------|------------|---------|
 | Header | 64px | Primary (`#0f2540`) | Project title, GitHub link |
 | Hero | Auto | White | Statistics cards, Download button |
-| Playground | Auto | Surface (`#f5f7fa`) | Query textarea, Example dropdown, Results table |
+| Playground | Auto | Surface (`#f5f7fa`) | Query textarea, Example dropdown, Results table, Schema reference (side panel) |
 | Footer | Auto | Surface (`#f5f7fa`) | Data source, License, Version |
 
 **Button Styles:**
@@ -626,7 +626,16 @@ FROM categories c LEFT JOIN foods f ON f.category_id = c.id
 GROUP BY c.id ORDER BY food_count DESC;
 ```
 
-#### 5.4.7 JavaScript Application Logic
+#### 5.4.7 Schema Reference
+
+The playground includes a "Schema Reference" panel on the right side with tabbed navigation:
+- 5 tabs: `categories`, `nutrient_categories`, `foods`, `nutrients`, `food_nutrients`
+- Each tab displays the table's columns and types
+- Foreign key relationships shown below each table
+
+The panel is sticky, allowing users to reference the database structure while writing SQL queries. On mobile, the schema panel appears below the query area.
+
+#### 5.4.8 JavaScript Application Logic
 
 **Initialization Flow:**
 1. Load SQL.js WASM module
@@ -651,7 +660,7 @@ GROUP BY c.id ORDER BY food_count DESC;
 - Show loading states during database fetch
 - Handle network failures gracefully
 
-#### 5.4.8 Architecture Diagram
+#### 5.4.9 Architecture Diagram
 
 ```
 +-------------------------------------------------------------------+
