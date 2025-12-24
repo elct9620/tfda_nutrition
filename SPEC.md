@@ -237,6 +237,9 @@ on:
         required: false
         type: boolean
         default: false
+  push:
+    branches:
+      - main
 
 jobs:
   etl:
@@ -262,7 +265,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - name: Install dependencies
         run: |
@@ -274,7 +277,7 @@ jobs:
         run: |
           echo "SQLite version: $(sqlite3 --version)"
           sqlite3 :memory: "CREATE VIRTUAL TABLE t USING fts5(x, tokenize='trigram');"
-          echo "✅ FTS5 trigram tokenizer supported"
+          echo "FTS5 trigram tokenizer supported"
 
       - name: Download FDA data
         run: |
@@ -290,16 +293,16 @@ jobs:
           # Ensure FTS was created successfully
           FTS_ENABLED=$(jq -r '.fts_enabled' report.json)
           if [ "$FTS_ENABLED" != "true" ]; then
-            echo "❌ FTS5 was not enabled in the database"
+            echo "FTS5 was not enabled in the database"
             exit 1
           fi
           # Verify FTS tables exist
           FTS_COUNT=$(sqlite3 nutrition.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'")
           if [ "$FTS_COUNT" != "2" ]; then
-            echo "❌ Expected 2 FTS tables, found $FTS_COUNT"
+            echo "Expected 2 FTS tables, found $FTS_COUNT"
             exit 1
           fi
-          echo "✅ FTS5 verification passed"
+          echo "FTS5 verification passed"
 
       - name: Run validation
         run: python validate.py nutrition.db
@@ -315,7 +318,7 @@ jobs:
 
       - name: Write Job Summary
         run: |
-          echo "## 🍎 Food Nutrition ETL Report" >> $GITHUB_STEP_SUMMARY
+          echo "## Food Nutrition ETL Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
@@ -326,7 +329,7 @@ jobs:
           echo "| Foods | $(jq .counts.foods report.json) |" >> $GITHUB_STEP_SUMMARY
           echo "| Nutrients | $(jq .counts.nutrients report.json) |" >> $GITHUB_STEP_SUMMARY
           echo "| Categories | $(jq .counts.categories report.json) |" >> $GITHUB_STEP_SUMMARY
-          FTS_STATUS=$(jq -r '.fts_enabled | if . then "✅ Enabled" else "⚠️ Disabled" end' report.json)
+          FTS_STATUS=$(jq -r '.fts_enabled | if . then "Enabled" else "Disabled" end' report.json)
           echo "| FTS5 Full-Text Search | $FTS_STATUS |" >> $GITHUB_STEP_SUMMARY
 
   release:
@@ -730,6 +733,49 @@ The application uses Vue 3 Composition API for reactive state management.
 |                                                                    |
 +-------------------------------------------------------------------+
 ```
+
+### 5.5 Test Workflow
+
+The test workflow runs unit tests on every push and pull request.
+
+```yaml
+# .github/workflows/test.yml
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run pytest
+        run: uv run pytest tests/ -v
+```
+
+| Step | Purpose |
+|------|---------|
+| Checkout | Clone repository |
+| Setup Python | Install Python 3.13 |
+| Install uv | Install uv package manager |
+| Install dependencies | Sync dev dependencies |
+| Run pytest | Execute test suite |
 
 ## 6. Use Cases & Decision Tables
 
