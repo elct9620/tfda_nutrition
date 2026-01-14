@@ -23,7 +23,18 @@ uv add <package>
 
 # Tests (not yet configured)
 devbox run test
+
+# Browser Automation
+npx agent-browser install --with-deps
+npx agent-browser open example.com
+npx agent-browser snapshot                    # Get accessibility tree with refs
+npx agent-browser click @e2                   # Click by ref from snapshot
+npx agent-browser fill @e3 "test@example.com" # Fill by ref
+npx agent-browser get text @e1                # Get text by ref
+npx agent-browser screenshot page.png
+npx agent-browser close
 ```
+
 
 ## Architecture
 
