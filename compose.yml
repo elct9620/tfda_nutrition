@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile_inline: |
         FROM ghcr.io/elct9620/autonoe/cli:python
-        RUN apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
+        RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
     volumes:
       - .:/workspace
       - ./.gitconfig.container:/root/.gitconfig:ro
