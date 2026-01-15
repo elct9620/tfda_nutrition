@@ -1,0 +1,639 @@
+{
+  "createdAt": "2026-01-15",
+  "updatedAt": "2026-01-15",
+  "deliverables": [
+    {
+      "id": "ETL-001",
+      "description": "As a developer, I want to download FDA JSON data from the official API so that I can process Taiwan food nutrition data",
+      "acceptanceCriteria": [
+        "Step 1: Execute the download script or main.py",
+        "Step 2: Verify HTTP request is made to https://data.fda.gov.tw/data/opendata/export/20/json",
+        "Step 3: Verify the downloaded ZIP file is extracted",
+        "Step 4: Verify dataset.json file exists and contains valid JSON",
+        "Step 5: Verify JSON contains expected fields: 食品分類, 整合編號, 樣品名稱, etc."
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "ETL-002",
+      "description": "As a developer, I want numeric fields cleaned and normalized so that waste_rate and serving_size values are properly parsed",
+      "acceptanceCriteria": [
+        "Step 1: Prepare test data with waste_rate='  10.5  ' (leading/trailing whitespace)",
+        "Step 2: Run the ETL clean_data function",
+        "Step 3: Verify whitespace is trimmed and value becomes 10.5",
+        "Step 4: Test waste_rate='50%' is converted to 50.0 (percent sign removed)",
+        "Step 5: Test serving_size='100克' is converted to 100.0 (Chinese suffix removed)",
+        "Step 6: Test serving_size='　50　' (full-width spaces) is converted to 50.0",
+        "Step 7: Test invalid format 'abc' returns NULL",
+        "Step 8: Test empty string returns NULL",
+        "Step 9: Test scientific notation '1.5e-3' is converted to 0.0015",
+        "Step 10: Test negative values '-5%' are accepted as -5.0"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "ETL-003",
+      "description": "As a developer, I want string fields normalized so that nutrient category names have consistent spacing",
+      "acceptanceCriteria": [
+        "Step 1: Prepare test data with nutrient_category='維生素B群  & C' (double space)",
+        "Step 2: Run the ETL clean_data function",
+        "Step 3: Verify double space is collapsed to single space: '維生素B群 & C'",
+        "Step 4: Test leading/trailing whitespace '  白飯  ' is trimmed to '白飯'",
+        "Step 5: Test empty string in optional field (name_en) becomes NULL",
+        "Step 6: Test Greek letters 'β-胡蘿蔔素' are preserved as-is",
+        "Step 7: Test whitespace-only string '   ' becomes NULL via NULLIF"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "ETL-004",
+      "description": "As a developer, I want P/M/S ratio values split into separate nutrient records so that polyunsaturated, monounsaturated, and saturated fat ratios are stored individually",
+      "acceptanceCriteria": [
+        "Step 1: Prepare test data with P/M/S value '1.52/1.89/1.00'",
+        "Step 2: Run the ETL transformation",
+        "Step 3: Verify 3 separate nutrient records are created",
+        "Step 4: Verify record 1: 脂肪酸比例-多元不飽和(P) = 1.52",
+        "Step 5: Verify record 2: 脂肪酸比例-單元不飽和(M) = 1.89",
+        "Step 6: Verify record 3: 脂肪酸比例-飽和(S) = 1.00",
+        "Step 7: Test '1.52/1.89' (only 2 parts) is filtered out (0 records)",
+        "Step 8: Test '1.52/1.89/1.00/0.5' (4 parts) uses first 3 only",
+        "Step 9: Test '1.52 / 1.89 / 1.00' (spaces around slashes) works correctly",
+        "Step 10: Test 'a/b/c' (non-numeric) creates 3 records with NULL values",
+        "Step 11: Test empty string is filtered out",
+        "Step 12: Test NULL input is filtered out"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "DB-001",
+      "description": "As a developer, I want a categories table created so that food categories are stored in a normalized structure",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline to generate nutrition.db",
+        "Step 2: Open the database and verify categories table exists",
+        "Step 3: Verify table has columns: id (INTEGER PRIMARY KEY), name (TEXT NOT NULL UNIQUE)",
+        "Step 4: Query SELECT COUNT(*) FROM categories",
+        "Step 5: Verify count equals 18 (expected category count)",
+        "Step 6: Verify categories include examples like '魚貝類', '蔬菜類', '水果類'"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "DB-002",
+      "description": "As a developer, I want a nutrient_categories table created so that nutrient types are classified",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline to generate nutrition.db",
+        "Step 2: Open the database and verify nutrient_categories table exists",
+        "Step 3: Verify table has columns: id (INTEGER PRIMARY KEY), name (TEXT NOT NULL UNIQUE)",
+        "Step 4: Query SELECT COUNT(*) FROM nutrient_categories",
+        "Step 5: Verify count equals 11 (expected nutrient category count)",
+        "Step 6: Verify categories include examples like '維生素A', '維生素B群 & C'"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "DB-003",
+      "description": "As a developer, I want a foods table created so that food items are stored with all metadata",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline to generate nutrition.db",
+        "Step 2: Open the database and verify foods table exists",
+        "Step 3: Verify table has columns: id, code (UNIQUE), name_zh (NOT NULL), name_en, category_id (FK), alias, description, waste_rate, serving_size",
+        "Step 4: Query SELECT COUNT(*) FROM foods",
+        "Step 5: Verify count is greater than 2000",
+        "Step 6: Verify foreign key constraint to categories table is enforced",
+        "Step 7: Query a sample food and verify all fields are populated correctly"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "DB-004",
+      "description": "As a developer, I want a nutrients table created so that nutrient definitions are stored with units",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline to generate nutrition.db",
+        "Step 2: Open the database and verify nutrients table exists",
+        "Step 3: Verify table has columns: id, category_id (FK), name (NOT NULL), unit",
+        "Step 4: Query SELECT COUNT(*) FROM nutrients",
+        "Step 5: Verify count is greater than 100",
+        "Step 6: Verify foreign key constraint to nutrient_categories table is enforced",
+        "Step 7: Verify nutrients include P/M/S ratio nutrients (3 separate entries)"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "DB-005",
+      "description": "As a developer, I want a food_nutrients table created so that the M:N relationship between foods and nutrients is stored with values",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline to generate nutrition.db",
+        "Step 2: Open the database and verify food_nutrients table exists",
+        "Step 3: Verify table has columns: food_id (FK, PK), nutrient_id (FK, PK), value_per_100g, sample_count, std_deviation",
+        "Step 4: Verify composite primary key on (food_id, nutrient_id)",
+        "Step 5: Verify foreign key constraints to foods and nutrients tables",
+        "Step 6: Query a sample food's nutrients and verify values are numeric",
+        "Step 7: Verify JOIN query returns complete nutrient profiles for foods"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "DB-006",
+      "description": "As a developer, I want database indexes created so that queries perform efficiently",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline to generate nutrition.db",
+        "Step 2: Verify index idx_foods_category exists on foods(category_id)",
+        "Step 3: Verify index idx_foods_name exists on foods(name_zh)",
+        "Step 4: Verify index idx_foods_code exists on foods(code)",
+        "Step 5: Verify index idx_nutrients_category exists on nutrients(category_id)",
+        "Step 6: Verify index idx_nutrients_name exists on nutrients(name)",
+        "Step 7: Verify index idx_food_nutrients_food exists on food_nutrients(food_id)",
+        "Step 8: Verify index idx_food_nutrients_nutrient exists on food_nutrients(nutrient_id)"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "FTS-001",
+      "description": "As a user, I want foods_fts virtual table created so that I can perform full-text search on food names",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline with FTS5 support available",
+        "Step 2: Open nutrition.db and verify foods_fts table exists",
+        "Step 3: Verify table is FTS5 virtual table with trigram tokenizer",
+        "Step 4: Verify indexed columns: name_zh, name_en, alias",
+        "Step 5: Verify content table is 'foods' with content_rowid='id'",
+        "Step 6: Run query: SELECT * FROM foods_fts WHERE foods_fts MATCH '雞胸肉'",
+        "Step 7: Verify matching food records are returned"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "FTS-002",
+      "description": "As a user, I want nutrients_fts virtual table created so that I can perform full-text search on nutrient names",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline with FTS5 support available",
+        "Step 2: Open nutrition.db and verify nutrients_fts table exists",
+        "Step 3: Verify table is FTS5 virtual table with trigram tokenizer",
+        "Step 4: Verify indexed column: name",
+        "Step 5: Verify content table is 'nutrients' with content_rowid='id'",
+        "Step 6: Run query: SELECT * FROM nutrients_fts WHERE nutrients_fts MATCH '維生素'",
+        "Step 7: Verify matching nutrient records are returned"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "FTS-003",
+      "description": "As a user, I want to search foods using FTS MATCH for 3+ character queries so that I can find foods by partial name",
+      "acceptanceCriteria": [
+        "Step 1: Open nutrition.db with FTS5 support",
+        "Step 2: Execute query: SELECT * FROM foods_fts WHERE foods_fts MATCH '里肌肉'",
+        "Step 3: Verify results include chicken and pork tenderloin items",
+        "Step 4: Execute query: SELECT * FROM foods_fts WHERE foods_fts MATCH '雞胸肉'",
+        "Step 5: Verify chicken breast items are returned",
+        "Step 6: Test mixed character search with Greek letters: MATCH 'β-胡蘿蔔'",
+        "Step 7: Verify correct results for special character searches"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "FTS-004",
+      "description": "As a user, I want to search foods using LIKE for 1-2 character queries so that short searches still work",
+      "acceptanceCriteria": [
+        "Step 1: Open nutrition.db",
+        "Step 2: Execute query: SELECT * FROM foods WHERE name_zh LIKE '%蛋%'",
+        "Step 3: Verify egg-related foods are returned",
+        "Step 4: Verify LIKE query uses available indexes for performance",
+        "Step 5: Test single character search: LIKE '%魚%'",
+        "Step 6: Verify fish-related foods are returned"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "VAL-001",
+      "description": "As a developer, I want validation to check food count so that data completeness is verified",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline including validation",
+        "Step 2: Open report.json output",
+        "Step 3: Verify counts.foods field exists",
+        "Step 4: Verify counts.foods > 2000",
+        "Step 5: Run manual query: SELECT COUNT(*) FROM foods",
+        "Step 6: Verify result matches report.json value"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "VAL-002",
+      "description": "As a developer, I want validation to check category counts so that reference data integrity is verified",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline including validation",
+        "Step 2: Open report.json output",
+        "Step 3: Verify counts.categories = 18",
+        "Step 4: Verify counts.nutrient_categories = 11",
+        "Step 5: Run manual queries to confirm counts match",
+        "Step 6: Verify no unexpected categories exist"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "VAL-003",
+      "description": "As a developer, I want validation to check for orphan records so that referential integrity is verified",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline including validation",
+        "Step 2: Query: SELECT COUNT(*) FROM foods WHERE category_id NOT IN (SELECT id FROM categories)",
+        "Step 3: Verify result is 0 (no orphan foods)",
+        "Step 4: Query: SELECT COUNT(*) FROM nutrients WHERE category_id NOT IN (SELECT id FROM nutrient_categories)",
+        "Step 5: Verify result is 0 (no orphan nutrients)",
+        "Step 6: Verify validation script reports no referential integrity issues"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "VAL-004",
+      "description": "As a developer, I want validation to check P/M/S nutrients exist so that ratio splitting is verified",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline including validation",
+        "Step 2: Query: SELECT * FROM nutrients WHERE name LIKE '%脂肪酸比例%'",
+        "Step 3: Verify 3 P/M/S nutrients exist: 多元不飽和(P), 單元不飽和(M), 飽和(S)",
+        "Step 4: Verify pms_records_processed field in report.json is > 0",
+        "Step 5: Verify food_nutrients has values for these nutrients"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "VAL-005",
+      "description": "As a developer, I want validation to check FTS tables exist so that full-text search capability is verified",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline in CI environment",
+        "Step 2: Open report.json output",
+        "Step 3: Verify fts_enabled = true",
+        "Step 4: Query: SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'",
+        "Step 5: Verify 2 FTS tables exist: foods_fts, nutrients_fts",
+        "Step 6: Verify CI workflow fails if FTS5 is not available"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "VAL-006",
+      "description": "As a developer, I want data quality checks so that NULL ratios and invalid values are detected",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL pipeline including validation",
+        "Step 2: Query: Check NULL ratio for 熱量 (calories) nutrient",
+        "Step 3: Verify NULL ratio is less than 10%",
+        "Step 4: Query: Check for negative nutrition values",
+        "Step 5: Verify no negative values exist in food_nutrients.value_per_100g",
+        "Step 6: Query: Check for duplicate food codes",
+        "Step 7: Verify no duplicate codes exist in foods table"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "CI-001",
+      "description": "As a developer, I want GitHub Actions ETL job configured so that the pipeline runs automatically",
+      "acceptanceCriteria": [
+        "Step 1: Check .github/workflows directory for ETL workflow file",
+        "Step 2: Verify workflow triggers on schedule (monthly on 1st: '0 0 1 * *')",
+        "Step 3: Verify workflow triggers on workflow_dispatch (manual)",
+        "Step 4: Verify workflow triggers on push to main branch",
+        "Step 5: Verify ETL job includes steps: setup python, download data, run ETL, validate",
+        "Step 6: Verify job uploads artifacts: nutrition.db, report.json, USAGE.md",
+        "Step 7: Verify FTS5 verification step exists and fails if unavailable"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "CI-002",
+      "description": "As a developer, I want GitHub Actions job summary generated so that ETL results are visible in the Actions UI",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL workflow in GitHub Actions",
+        "Step 2: Navigate to the workflow run summary page",
+        "Step 3: Verify markdown summary is displayed with version info",
+        "Step 4: Verify summary includes metrics table: Total Records, Foods, Nutrients, Categories",
+        "Step 5: Verify summary includes FTS5 status indicator",
+        "Step 6: Verify summary format matches spec: ## Food Nutrition ETL Report header"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "CI-003",
+      "description": "As a developer, I want GoReleaser configured for GitHub Releases so that database files are published",
+      "acceptanceCriteria": [
+        "Step 1: Check .goreleaser.yml configuration file exists",
+        "Step 2: Verify project_name is 'taiwan-food-nutrition'",
+        "Step 3: Verify builds array is empty (no binary builds)",
+        "Step 4: Verify release.extra_files includes nutrition.db and USAGE.md",
+        "Step 5: Verify checksum.name_template is 'checksums.txt'",
+        "Step 6: Verify changelog configuration exists",
+        "Step 7: Run release workflow and verify GitHub Release is created with correct assets"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "CI-004",
+      "description": "As a developer, I want test workflow configured so that pytest runs on PRs and pushes",
+      "acceptanceCriteria": [
+        "Step 1: Check .github/workflows directory for test workflow file",
+        "Step 2: Verify workflow triggers on push to main branch",
+        "Step 3: Verify workflow triggers on pull_request to main branch",
+        "Step 4: Verify test job includes: checkout, setup python, install uv, install dependencies",
+        "Step 5: Verify test job runs: uv run pytest tests/ -v",
+        "Step 6: Create a test PR and verify workflow executes successfully"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "CI-005",
+      "description": "As a developer, I want date-based versioning so that releases have unique version numbers",
+      "acceptanceCriteria": [
+        "Step 1: Run the ETL workflow",
+        "Step 2: Verify version is generated in format vYYYYMMDD",
+        "Step 3: Verify same-day runs get a suffix for uniqueness",
+        "Step 4: Verify version is included in job summary",
+        "Step 5: Verify version is used in GoReleaser release tag"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-001",
+      "description": "As a user, I want to see a hero section on the GitHub Pages site so that I understand the project and its statistics",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Verify hero section is visible at the top of the page",
+        "Step 3: Verify project overview text is displayed",
+        "Step 4: Verify statistics cards are displayed: Foods count, Nutrients count, Categories count",
+        "Step 5: Verify statistics show approximate values: ~2,181 foods, ~107 nutrients, ~18 categories",
+        "Step 6: Verify hero section uses #0f2540 dark background color"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-002",
+      "description": "As a user, I want a download button on the GitHub Pages site so that I can download the SQLite database",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Locate the download button in the hero section",
+        "Step 3: Verify button text indicates 'Download SQLite Database' or similar",
+        "Step 4: Verify button uses #f9bf45 accent color",
+        "Step 5: Click the download button",
+        "Step 6: Verify nutrition.db file download starts",
+        "Step 7: Verify downloaded file is valid SQLite database (~13 MB)"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-003",
+      "description": "As a user, I want an interactive SQL playground so that I can query the database in my browser",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Wait for database to load (progress indicator shown)",
+        "Step 3: Locate the SQL playground section",
+        "Step 4: Verify query input textarea is displayed with default query",
+        "Step 5: Verify 'Run Query' button is displayed with #51a8dd color",
+        "Step 6: Enter a query: SELECT * FROM foods LIMIT 5",
+        "Step 7: Click Run Query button",
+        "Step 8: Verify results table is displayed with food data"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-004",
+      "description": "As a user, I want example queries dropdown so that I can quickly run common queries",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL and wait for database load",
+        "Step 2: Locate the example queries dropdown/select",
+        "Step 3: Verify dropdown contains 7 example queries as per spec",
+        "Step 4: Select 'High Protein Foods' example",
+        "Step 5: Verify query textarea is populated with the corresponding SQL",
+        "Step 6: Click Run Query",
+        "Step 7: Verify results show top 10 foods with highest protein",
+        "Step 8: Select 'Category List' example and verify category counts are displayed"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-005",
+      "description": "As a user, I want a schema reference panel so that I can understand the database structure",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Locate the Schema Reference panel (sticky position)",
+        "Step 3: Verify tabbed navigation for 5 tables: categories, nutrient_categories, foods, nutrients, food_nutrients",
+        "Step 4: Click on 'foods' tab",
+        "Step 5: Verify columns are listed: id, code, name_zh, name_en, category_id, alias, description, waste_rate, serving_size",
+        "Step 6: Verify foreign key relationships are indicated",
+        "Step 7: Verify panel remains visible while scrolling (sticky)"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-006",
+      "description": "As a user, I want a loading progress bar so that I know the database download status",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL (clear cache first)",
+        "Step 2: Observe loading progress indicator appears",
+        "Step 3: Verify Stage 1 shows 'Loading SQL.js...' with indeterminate pulsing bar",
+        "Step 4: Verify Stage 2 shows 'Downloading database... X.X MB / Y.Y MB' with progress fill",
+        "Step 5: Verify Stage 3 shows 'Initializing database...' with indeterminate pulsing bar",
+        "Step 6: Verify progress bar uses design tokens: bg-secondary fill, bg-gray-200 track",
+        "Step 7: Verify sharp corners (border-radius: 0) on progress bar"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-007",
+      "description": "As a user, I want query results displayed in a table so that I can read the data clearly",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL and wait for load",
+        "Step 2: Run a query: SELECT * FROM categories",
+        "Step 3: Verify results table is displayed with column headers",
+        "Step 4: Verify table uses #f5f7fa surface color for background",
+        "Step 5: Verify table has sharp corners following design tokens",
+        "Step 6: Verify table data is readable and properly aligned",
+        "Step 7: Run a query with many rows and verify scrolling works",
+        "Step 8: Run a query with no results and verify appropriate message shown"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-008",
+      "description": "As a user, I want the GitHub Pages site to follow the design tokens so that the UI is consistent",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Verify header uses #0f2540 (Primary) dark color",
+        "Step 3: Verify links and Run Query button use #51a8dd (Secondary) color",
+        "Step 4: Verify Download button uses #f9bf45 (Accent 2) color",
+        "Step 5: Verify code blocks and result tables use #f5f7fa (Surface) color",
+        "Step 6: Verify all corners are sharp (border-radius: 0)",
+        "Step 7: Verify system fonts are used (no external font dependencies)",
+        "Step 8: Verify no external CSS framework dependencies beyond TailwindCSS CDN"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-009",
+      "description": "As a user, I want the GitHub Pages site to work with CDN dependencies so that no build step is required",
+      "acceptanceCriteria": [
+        "Step 1: Open index.html source code",
+        "Step 2: Verify Vue.js 3.x is loaded from CDN",
+        "Step 3: Verify TailwindCSS 3.x is loaded from CDN",
+        "Step 4: Verify SQL.js 1.11.0 is loaded from CDN",
+        "Step 5: Verify no npm build step is required",
+        "Step 6: Verify page functions correctly with only CDN resources",
+        "Step 7: Verify FTS5 note mentions that FTS5 is not available in web playground"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-010",
+      "description": "As a user, I want the header to include a GitHub repository link so that I can access the source code",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Locate the header section",
+        "Step 3: Verify 'Taiwan Food Nutrition DB' title is displayed",
+        "Step 4: Verify GitHub link/icon is visible in header",
+        "Step 5: Click the GitHub link",
+        "Step 6: Verify navigation to the correct GitHub repository"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "WEB-011",
+      "description": "As a user, I want the footer to show data attribution and license so that I understand data provenance",
+      "acceptanceCriteria": [
+        "Step 1: Navigate to the GitHub Pages URL",
+        "Step 2: Scroll to the footer section",
+        "Step 3: Verify data source attribution: 'Taiwan FDA' or similar",
+        "Step 4: Verify license mention: 'Taiwan Open Government Data License' or 'OGL'",
+        "Step 5: Verify version number is displayed (format: vYYYYMMDD)"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "OUT-001",
+      "description": "As a developer, I want nutrition.db generated as the primary output artifact so that users can download and use the database",
+      "acceptanceCriteria": [
+        "Step 1: Run the complete ETL pipeline",
+        "Step 2: Verify nutrition.db file is created in output directory",
+        "Step 3: Verify file size is approximately 13 MB",
+        "Step 4: Open file with sqlite3 and verify it's a valid SQLite database",
+        "Step 5: Verify all 5 tables exist: categories, nutrient_categories, foods, nutrients, food_nutrients",
+        "Step 6: Verify FTS tables exist if FTS5 was available",
+        "Step 7: Verify file is included in GitHub Release assets"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "OUT-002",
+      "description": "As a developer, I want report.json generated so that ETL execution details are logged",
+      "acceptanceCriteria": [
+        "Step 1: Run the complete ETL pipeline",
+        "Step 2: Verify report.json file is created",
+        "Step 3: Verify JSON contains input_file field",
+        "Step 4: Verify JSON contains counts object with: total_records, foods, categories, nutrient_categories, nutrients, food_nutrients",
+        "Step 5: Verify JSON contains pms_records_processed field",
+        "Step 6: Verify JSON contains fts_enabled boolean field",
+        "Step 7: Verify JSON contains warnings array (even if empty)"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "OUT-003",
+      "description": "As a developer, I want USAGE.md generated so that users have documentation for the database",
+      "acceptanceCriteria": [
+        "Step 1: Run the complete ETL pipeline",
+        "Step 2: Verify USAGE.md file is created or exists",
+        "Step 3: Verify file contains database schema documentation",
+        "Step 4: Verify file contains usage examples",
+        "Step 5: Verify file size is approximately 3 KB as per spec",
+        "Step 6: Verify file is included in GitHub Release assets"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "OUT-004",
+      "description": "As a developer, I want checksums.txt generated by GoReleaser so that users can verify file integrity",
+      "acceptanceCriteria": [
+        "Step 1: Trigger a release workflow",
+        "Step 2: Verify GoReleaser runs successfully",
+        "Step 3: Verify checksums.txt is generated with SHA256 checksums",
+        "Step 4: Verify checksums.txt includes entries for nutrition.db and USAGE.md",
+        "Step 5: Download files from release and verify checksums match"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "QUERY-001",
+      "description": "As a nutritionist, I want to find high protein + low fat foods so that I can recommend lean protein sources",
+      "acceptanceCriteria": [
+        "Step 1: Open nutrition.db with SQLite client",
+        "Step 2: Execute the T5-1 query for high protein (>20g) and low fat (<5g) foods",
+        "Step 3: Verify query uses JOIN on foods, food_nutrients, nutrients tables",
+        "Step 4: Verify results show foods meeting criteria with protein and fat values",
+        "Step 5: Verify results are ordered by protein content descending",
+        "Step 6: Verify at least 10 foods match the criteria"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "QUERY-002",
+      "description": "As a diet manager, I want to calculate recipe nutrition so that I can track meal macros",
+      "acceptanceCriteria": [
+        "Step 1: Open nutrition.db with SQLite client",
+        "Step 2: Define recipe ingredients with weights (e.g., tomato 200g, egg 120g, oil 10g)",
+        "Step 3: Execute the T6-1 weighted sum query",
+        "Step 4: Verify query calculates nutrient totals based on ingredient weights",
+        "Step 5: Verify results show total calories, protein, fat for the recipe",
+        "Step 6: Verify calculations account for value_per_100g scaling"
+      ],
+      "passed": false,
+      "blocked": false
+    },
+    {
+      "id": "QUERY-003",
+      "description": "As a user, I want to search foods by name using FTS so that I can quickly find items",
+      "acceptanceCriteria": [
+        "Step 1: Open nutrition.db with native SQLite client (not sql.js)",
+        "Step 2: Execute FTS MATCH query for 3+ character search: MATCH '雞胸肉'",
+        "Step 3: Verify chicken breast items are returned",
+        "Step 4: Execute LIKE query for 1-2 character search: LIKE '%蛋%'",
+        "Step 5: Verify egg items are returned",
+        "Step 6: Verify Chinese character search '里肌肉' returns both chicken and pork tenderloin"
+      ],
+      "passed": false,
+      "blocked": false
+    }
+  ]
+}
